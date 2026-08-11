@@ -3,6 +3,7 @@ package com.mecfin.identity.application;
 import com.mecfin.identity.domain.User;
 import com.mecfin.identity.infra.UserRepository;
 import java.util.Locale;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,14 @@ public class AuthService {
             throw new DuplicateEmailException(normalizedEmail);
         }
         User user = new User(normalizedEmail, passwordEncoder.encode(rawPassword));
-        return userRepository.save(user);
+        try {
+            // saveAndFlush (not save) forces the INSERT now, inside this try block, so a
+            // unique-constraint violation from a concurrent registration of the same email
+            // (the findByEmail check above can't see an uncommitted row) surfaces here as a
+            // clean 409 instead of leaking out as an unhandled 500 later at transaction commit.
+            return userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateEmailException(normalizedEmail);
+        }
     }
 }
