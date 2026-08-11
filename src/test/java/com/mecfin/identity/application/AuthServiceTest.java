@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,13 +31,13 @@ class AuthServiceTest {
         AuthService authService = new AuthService(userRepository, passwordEncoder);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("s3cret1234")).thenReturn("hashed");
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         User saved = authService.register("User@Example.com", "s3cret1234");
 
         assertThat(saved.getEmail()).isEqualTo("user@example.com");
         assertThat(saved.getPasswordHash()).isEqualTo("hashed");
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -48,6 +49,21 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register("user@example.com", "s3cret1234"))
                 .isInstanceOf(DuplicateEmailException.class);
 
-        verify(userRepository, never()).save(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void registerWithRaceConditionOnUniqueConstraintThrowsDuplicateEmail() {
+        // Simulates two concurrent registrations for the same email: both pass the
+        // findByEmail() check (neither sees the other's uncommitted row), so the DB's
+        // unique constraint is what actually catches the duplicate, on flush.
+        AuthService authService = new AuthService(userRepository, passwordEncoder);
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("s3cret1234")).thenReturn("hashed");
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        assertThatThrownBy(() -> authService.register("user@example.com", "s3cret1234"))
+                .isInstanceOf(DuplicateEmailException.class);
     }
 }
