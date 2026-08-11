@@ -95,6 +95,12 @@
             <artifactId>bucket4j_jdk17-core</artifactId>
             <version>8.19.0</version>
         </dependency>
+        <dependency>
+            <!-- Bounds RateLimiter's bucket map: unauthenticated callers control part of the
+                 cache key (IP+email), so an unbounded map would let an attacker exhaust heap. -->
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
