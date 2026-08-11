@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mecfin}
+      POSTGRES_USER: ${DB_USER:-mecfin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - mecfin-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mecfin} -d ${DB_NAME:-mecfin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mecfin-postgres-data:
