@@ -1,0 +1,275 @@
+MEC-EXPLAIN.TXT — guia de estudo do projeto fin-mec
+=====================================================
+(Este NÃO é um README técnico. É um guia para você conseguir explicar este
+projeto pra outra pessoa — o problema que ele ataca, as decisões tomadas,
+e o que estudar pra sustentar essas decisões numa conversa técnica.)
+
+
+1. O QUE É O PROJETO
+---------------------
+"mec-fin" (artefato Maven: mec-fin, pacote com.mecfin) é descrito no próprio
+pom.xml como "Plataforma pessoal de gestão financeira" — um app para uma
+pessoa controlar as próprias finanças (o domínio "identity" já existe;
+"transações", "categorias", "orçamento" etc. ainda não têm nenhuma classe
+no código — ver seção 3 sobre o estágio real do projeto).
+
+Stack: Spring Boot 4.1 / Java 21, Postgres 18 (via Docker Compose),
+Flyway para migrações, springdoc para OpenAPI, autenticação por sessão
+(cookie), Argon2id para senha, Bucket4j+Caffeine para rate limiting.
+
+IMPORTANTE — estágio real do projeto: hoje (14/08/2026, 4 commits) o
+projeto tem SOMENTE dois pedaços prontos:
+  - Fase 0: esqueleto (config, tratamento de erro, observabilidade, CI)
+  - Fase 1: autenticação (registro, login, logout, sessão)
+Nenhuma funcionalidade financeira (lançar despesa, categorizar, ver saldo,
+orçamento) existe ainda no código. Isso significa que, hoje, o projeto
+"resolve" ainda nada do problema financeiro em si — ele resolve o
+problema de "como autenticar um usuário de forma segura", que é
+pré-requisito para o que vem depois. Ao explicar o projeto pra alguém,
+seja honesto sobre isso: é a fundação de um gestor financeiro pessoal,
+não um gestor financeiro pessoal funcionando ainda.
+
+Para quem: parece um projeto pessoal/portfólio (não há indício de deploy
+em produção, base de usuários real, ou multi-tenant além de "cada usuário
+vê só os próprios dados" via CurrentUser). Pelas mensagens de commit em
+português e o domínio "gestão financeira pessoal", o público-alvo natural
+é o mesmo mercado dos apps brasileiros de finanças pessoais (ver seção 2).
+
+Que problema o projeto busca resolver (quando as fases financeiras
+existirem): ajudar uma pessoa física a acompanhar receitas/despesas e
+organizar a vida financeira — o mesmo problema que Mobills, Organizze,
+GuiaBolso (descontinuado) e, na vertente open-source/self-hosted,
+Firefly III e Actual Budget já resolvem hoje.
+
+
+2. COMO SE COMPARA A SOLUÇÕES SIMILARES NO MERCADO
+----------------------------------------------------
+No mercado brasileiro de apps de finanças pessoais, os players mais
+citados em comparativos de 2025/2026 são Mobills, Organizze, Minhas
+Economias e Spendee; o GuiaBolso foi comprado pelo PicPay e descontinuado
+em favor da integração ao próprio app do PicPay. O diferencial que mais
+aparece nesses comparativos hoje é Open Finance — conectar contas de
+bancos diferentes automaticamente em vez de lançamento manual — que é
+exatamente o tipo de feature que exige integração bancária regulada e
+está fora do escopo atual (autenticação apenas) deste projeto.
+Fonte: https://www.serasa.com.br/score/blog/opcoes-de-aplicativo-para-controle-financeiro/,
+https://www.mobills.com.br/blog/aplicativos/apps-de-controle-financeiro/
+
+Na vertente open-source/self-hosted — mais próxima do que este projeto
+parece ser em espírito (código aberto, rodando em container próprio,
+sem vínculo com uma fintech) — as referências são Firefly III e Actual
+Budget. Firefly III segue contabilidade de partida dobrada (double-entry
+bookkeeping): toda transação afeta duas contas, útil para quem tem
+múltiplas contas/cartões e quer reconciliação rigorosa. Actual Budget
+segue orçamento de base zero (zero-based budgeting, inspirado no YNAB):
+cada real recebido é alocado a uma categoria antes de ser gasto, com
+foco em simplicidade e configuração rápida (~15 min).
+Fonte: https://beancount.io/blog/2026/07/26/firefly-iii-vs-actual-budget-self-hosted-open-source-budgeting-guide,
+https://selfhostable.dev/blog/firefly-iii-vs-actual-budget-self-hosted-finance/
+
+Posicionamento honesto deste projeto hoje: ele ainda não compete com
+nenhum desses — não há modelo de dados financeiro nenhum implementado.
+O que já existe (autenticação por sessão, rate limiting, tratamento de
+erro padronizado RFC 7807, correlação de logs) é infraestrutura que
+qualquer um desses produtos também precisa ter, mas não é o que os
+diferencia entre si. Quando as próximas fases chegarem, a decisão que vai
+definir o posicionamento real é: "mec-fin" vai ser mais parecido com
+Firefly III (partida dobrada, multi-conta, rigor contábil) ou com Actual
+Budget (envelope/orçamento simples, foco em não gastar mais do que
+planejado)? Essa decisão ainda não foi tomada no código — vale registrar
+explicitamente quando for.
+
+
+3. DECISÕES TÉCNICAS TOMADAS E POR QUÊ
+-----------------------------------------
+O histórico é curto (3 commits de conteúdo + 1 merge), então não dá para
+reconstruir uma grande "evolução" de arquitetura — mas HÁ um exemplo claro
+de decisão tomada, revisada, e corrigida em cima da mesma feature, que é o
+caso mais valioso para estudar aqui:
+
+a) Fase 0 → Fase 1 → correção de Fase 1 (o único ciclo completo do
+   histórico):
+   - Commit a2c177b (fase-0): monta o esqueleto com "negar tudo por
+     padrão, liberar só /actuator/health" — postura de segurança
+     "default deny" desde o primeiro commit, antes mesmo de existir
+     qualquer rota de negócio.
+   - Commit 7484164 (fase-1): adiciona registro/login/logout via sessão
+     (cookie HttpOnly+Secure+SameSite), Argon2id, CSRF via cookie
+     legível por JS (Spring Security spa()), e rate limiting com
+     Bucket4j.
+   - Commit f1f9b57 (fix): o próprio autor rodou um /code-review sobre o
+     diff da Fase 1 e achou DOIS problemas reais antes de dar por
+     encerrada a feature:
+       1. Race condition em AuthService.register: duas requisições
+          concorrentes com o mesmo e-mail passavam as duas pelo
+          findByEmail() antes de qualquer commit no banco (clássica
+          janela check-then-act), e a segunda estourava
+          DataIntegrityViolationException não tratada na constraint
+          única — virando 500 em vez do 409 que a API deveria devolver.
+          Correção: trocar save() por saveAndFlush() dentro de um
+          try/catch que recaptura a violação e relança como
+          DuplicateEmailException.
+       2. DoS de memória no RateLimiter: o mapa de buckets era um
+          ConcurrentHashMap simples, sem limite nem expiração. Como a
+          chave do rate limit de login é IP+email — e email é dado
+          fornecido pelo cliente, sem qualquer validação prévia — um
+          atacante batendo em /auth/login com e-mails distintos fazia o
+          heap crescer sem parar. Correção: trocar por cache Caffeine
+          com expireAfterAccess de 10 min e maximumSize de 50 mil
+          entradas.
+   Isso é a evidência mais direta do histórico: "código passou por
+   review, dois bugs de concorrência/segurança foram achados, e a
+   correção foi feita num commit separado e documentado" — não é uma
+   mudança de rumo de arquitetura, é o ciclo saudável de "implementei →
+   revisei → corrigi" acontecendo de forma registrada no histórico.
+
+b) Autenticação por sessão (cookie), não JWT — decisão tomada direto na
+   Fase 1, sem indício de ter sido testada de outro jeito antes. O
+   SecurityConfig usa HttpSessionSecurityContextRepository e CSRF via
+   Spring Security spa() (cookie de CSRF legível por JS), o que só faz
+   sentido no modelo de sessão com cookie — é a combinação clássica para
+   uma SPA first-party (frontend e backend no mesmo domínio/confiança).
+   Isso evita a classe inteira de problemas de expiração/revogação de
+   token que JWT stateless traria (ver seção 4).
+
+c) Argon2id via Bouncy Castle, não bcrypt — pom.xml declara
+   explicitamente a dependência org.bouncycastle:bcprov-jdk18on com o
+   comentário "Argon2PasswordEncoder delegates to Bouncy Castle's Argon2
+   implementation at runtime" — ou seja, o autor sabia que precisava
+   dessa dependência de propósito, não foi acidente de build quebrado.
+
+d) CurrentUser como ponto único de acesso ao usuário autenticado — a
+   classe já nasce (na Fase 1) com o comentário explícito de que é
+   "mitigação de IDOR/BOLA" e que todo módulo futuro deve escopar
+   consultas por CurrentUser.id(), nunca por um id vindo puro do
+   cliente. É uma decisão de arquitetura pensada para módulos que ainda
+   não existem (transações, orçamento) — o autor está pavimentando o
+   padrão de autorização antes de precisar dele.
+
+e) Erros nunca vazam detalhe interno — GlobalExceptionHandler tem um
+   catch-all (Exception.class) que loga a stacktrace completa mas
+   devolve só "Ocorreu um erro inesperado" ao cliente; e existe um
+   ProblemDetailWriter separado especificamente porque a security filter
+   chain roda ANTES do DispatcherServlet, então o @RestControllerAdvice
+   não consegue interceptar um 401 disparado ali dentro — precisa de um
+   segundo caminho de escrita de erro para manter o mesmo formato
+   RFC 7807 em ambos os casos.
+
+
+4. TEMAS PARA ESTUDAR
+------------------------
+Cada tema abaixo está amarrado a algo específico que você vai encontrar
+neste código — não é lista genérica.
+
+- Condição de corrida check-then-act (TOCTOU) em fluxos de escrita
+  única (registro de usuário): por que "verificar que não existe, depois
+  inserir" não é atômico entre duas requisições concorrentes, e por que a
+  correção real é ou (a) confiar na constraint única do banco e tratar a
+  exceção, ou (b) usar SELECT ... FOR UPDATE / upsert. O commit f1f9b57
+  escolheu (a). Saber explicar por que (a) é suficiente aqui (chave é
+  única no banco) e quando NÃO seria (regras de negócio mais complexas
+  que uma constraint não cobre).
+
+- saveAndFlush() vs save() no Spring Data JPA: por que trocar um pelo
+  outro muda o momento em que a violação de constraint aparece (dentro
+  do seu try/catch vs. só no commit da transação, fora do seu controle).
+  Isso é o núcleo técnico da correção do commit f1f9b57.
+
+- Rate limiting com chave parcialmente controlada pelo atacante: o
+  RateLimiter usa IP+email como chave ANTES de validar se a credencial é
+  real — então "email" é essencialmente uma string arbitrária vinda do
+  cliente. Estudar por que isso é diferente de rate-limit por IP puro, e
+  por que a solução (Caffeine com maximumSize + expireAfterAccess) é uma
+  política de eviction, não uma "correção" no sentido de impedir o
+  ataque — ela limita o dano, não impede a tentativa.
+
+- Cookie de sessão vs JWT para autenticação de SPA — e por que esse
+  projeto escolheu sessão: dá para explicar as vantagens (revogação
+  trivial — apaga a sessão do lado servidor —, sem necessidade de
+  refresh token) e as desvantagens (não escala horizontalmente sem
+  sessão compartilhada/sticky session, não serve bem para app
+  mobile/terceiro consumindo a API). Vale estudar CSRF nesse contexto
+  também: cookie de sessão exige proteção CSRF (por isso o
+  CsrfConfigurer.spa() aqui), enquanto JWT em header normalmente não
+  precisa.
+
+- Argon2id — parâmetros (memória, iterações, paralelismo) e por que
+  Argon2id é considerado hoje mais resistente a ataque por hardware
+  dedicado (GPU/ASIC) que bcrypt/PBKDF2. Vale entender os defaults que
+  Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8() aplica e quando
+  valeria a pena ajustá-los.
+
+- RFC 7807 (Problem Details for HTTP APIs) e por que padronizar erro em
+  todo o ponto de saída da API (inclusive dentro da security filter
+  chain, via ProblemDetailWriter) evita que o cliente da API tenha que
+  tratar dois formatos de erro diferentes dependendo de ONDE a exceção
+  foi lançada.
+
+- IDOR/BOLA (Insecure/Broken Object Level Authorization) e por que
+  CurrentUser existe como único ponto de acesso ao id do usuário
+  autenticado. Esse é o tema mais importante para as PRÓXIMAS fases: no
+  momento em que existir uma tabela de "transações" ou "contas", a
+  pergunta central de segurança vai ser "toda query está filtrando por
+  CurrentUser.id(), ou dá para um usuário logado passar o id de outro
+  usuário e ver dados alheios?".
+
+- Testcontainers para teste de integração com banco real (Postgres),
+  em vez de H2 em memória: por que isso evita divergência de
+  comportamento entre o banco de teste e o de produção (o próprio caso
+  de constraint única / DataIntegrityViolationException deste projeto é
+  um exemplo de comportamento que um H2 mal configurado poderia mascarar).
+
+
+5. DIFICULDADES/PROBLEMAS REAIS ENCONTRADOS
+-----------------------------------------------
+O histórico tem só um commit de correção (f1f9b57), mas ele é rico:
+documenta EXPLICITAMENTE, na própria mensagem, dois bugs reais achados
+via revisão de código sobre a Fase 1 recém-implementada, antes de
+qualquer um deles ter acontecido em produção:
+
+  1. Race condition no registro de usuário (check-then-act) — resultava
+     em 500 em vez de 409 sob concorrência (duas requisições de
+     registro com o mesmo e-mail, quase simultâneas).
+  2. Vetor de DoS de memória no rate limiter — mapa de buckets sem
+     limite, com parte da chave (email) vindo direto do cliente sem
+     validação prévia.
+
+O commit registra também que um novo teste foi escrito especificamente
+para cobrir o cenário de race condition, e que a suíte completa (8
+testes unitários + 11 de integração) passou depois da correção — ou
+seja, o problema foi fechado com teste de regressão, não só com a
+correção pontual.
+
+Fora esse ciclo, não há outra evidência de dificuldade no histórico
+(sem commits de "revert", sem retrabalho de arquitetura visível em só
+4 commits). Seria desonesto inventar mais problemas do que o histórico
+sustenta — o correto é dizer que, até aqui, o projeto teve uma execução
+linear (fase 0 → fase 1 → correção via review) sem grandes reviravoltas.
+
+
+6. COMO EXPLICAR ESSE PROJETO PRA ALGUÉM DE FORA
+-----------------------------------------------------
+"O mec-fin é a base de um app pessoal de controle financeiro — hoje ele
+ainda não guarda nenhuma despesa ou receita, porque o que foi construído
+até agora é só a parte de login: uma pessoa consegue se cadastrar, entrar
+e sair da conta de forma segura, com a senha protegida por um algoritmo
+resistente a ataque de força bruta (Argon2id), proteção contra excesso de
+tentativas de login, e um sistema de erro padronizado para a API. Depois
+de terminar essa base, o passo natural é construir a parte que realmente
+resolve o problema do usuário — lançar e organizar transações — no mesmo
+espírito de projetos como Organizze e Mobills no Brasil, ou Firefly III e
+Actual Budget no mundo open-source. O ponto interessante técnico do
+projeto até agora não é a feature em si, é o cuidado: o próprio autor
+revisou o próprio código antes de seguir em frente e achou (e corrigiu)
+dois bugs reais de concorrência e segurança que só apareceriam sob carga
+ou ataque, não em uso normal."
+
+
+7. NOTA FINAL
+----------------
+Este arquivo é um documento VIVO. Ele foi escrito com base no estado do
+projeto em 14/08/2026 (4 commits, só fases 0 e 1 prontas). Assim que
+novas fases forem implementadas (transações, categorias, orçamento,
+open finance, o que for) — ou se alguma decisão aqui documentada mudar
+de rumo — este arquivo precisa ser atualizado para continuar refletindo
+a realidade do projeto. Não é para ser gerado uma vez e esquecido.
