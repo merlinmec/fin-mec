@@ -15,10 +15,24 @@ public final class CurrentUser {
     }
 
     public static UUID id() {
+        return principal().getUserId();
+    }
+
+    /**
+     * Household ativo do usuário autenticado. Todo módulo com dado financeiro
+     * (account, category, transaction, bill, credit card, ...) deve escopar suas
+     * consultas por este id — nunca por {@link #id()} — para que o dado seja
+     * naturalmente compartilhável entre membros do mesmo household no futuro.
+     */
+    public static UUID householdId() {
+        return principal().getHouseholdId();
+    }
+
+    private static AuthenticatedPrincipal principal() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof AuthenticatedPrincipal principal)) {
             throw new IllegalStateException("No authenticated user in security context");
         }
-        return principal.getUserId();
+        return principal;
     }
 }
