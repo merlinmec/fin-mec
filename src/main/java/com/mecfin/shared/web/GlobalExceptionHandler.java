@@ -1,6 +1,7 @@
 package com.mecfin.shared.web;
 
 import com.mecfin.shared.exception.ConflictException;
+import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.shared.exception.TooManyRequestsException;
 import com.mecfin.shared.exception.UnauthorizedException;
 import org.slf4j.Logger;
@@ -55,6 +56,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setTitle("Conflict");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleNotFound(NotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
     @ExceptionHandler(UnauthorizedException.class)

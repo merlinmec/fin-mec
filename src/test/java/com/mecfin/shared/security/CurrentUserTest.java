@@ -18,10 +18,13 @@ class CurrentUserTest {
         SecurityContextHolder.clearContext();
     }
 
+    private record TestPrincipal(UUID getUserId, UUID getHouseholdId) implements AuthenticatedPrincipal {
+    }
+
     @Test
     void idReturnsAuthenticatedPrincipalUserId() {
         UUID userId = UUID.randomUUID();
-        AuthenticatedPrincipal principal = () -> userId;
+        AuthenticatedPrincipal principal = new TestPrincipal(userId, UUID.randomUUID());
         Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -31,5 +34,20 @@ class CurrentUserTest {
     @Test
     void idThrowsWhenNoAuthenticationInContext() {
         assertThatThrownBy(CurrentUser::id).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void householdIdReturnsAuthenticatedPrincipalHouseholdId() {
+        UUID householdId = UUID.randomUUID();
+        AuthenticatedPrincipal principal = new TestPrincipal(UUID.randomUUID(), householdId);
+        Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        assertThat(CurrentUser.householdId()).isEqualTo(householdId);
+    }
+
+    @Test
+    void householdIdThrowsWhenNoAuthenticationInContext() {
+        assertThatThrownBy(CurrentUser::householdId).isInstanceOf(IllegalStateException.class);
     }
 }
