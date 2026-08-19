@@ -1,6 +1,6 @@
 package com.mecfin.transaction.api;
 
-import com.mecfin.transaction.domain.RecurrenceRule;
+import com.mecfin.shared.domain.RecurrenceRule;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import jakarta.validation.constraints.NotBlank;
