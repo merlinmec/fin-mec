@@ -8,12 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mecfin.identity.domain.User;
+import com.mecfin.identity.domain.UserRegisteredEvent;
 import com.mecfin.identity.infra.UserRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -26,9 +28,12 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     @Test
     void registerHashesPasswordAndSavesLowercasedEmail() {
-        AuthService authService = new AuthService(userRepository, passwordEncoder);
+        AuthService authService = new AuthService(userRepository, passwordEncoder, eventPublisher);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("s3cret1234")).thenReturn("hashed");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -38,11 +43,12 @@ class AuthServiceTest {
         assertThat(saved.getEmail()).isEqualTo("user@example.com");
         assertThat(saved.getPasswordHash()).isEqualTo("hashed");
         verify(userRepository).saveAndFlush(any(User.class));
+        verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
     }
 
     @Test
     void registerWithExistingEmailThrowsAndNeverSaves() {
-        AuthService authService = new AuthService(userRepository, passwordEncoder);
+        AuthService authService = new AuthService(userRepository, passwordEncoder, eventPublisher);
         when(userRepository.findByEmail("user@example.com"))
                 .thenReturn(Optional.of(new User("user@example.com", "hash")));
 
@@ -50,6 +56,7 @@ class AuthServiceTest {
                 .isInstanceOf(DuplicateEmailException.class);
 
         verify(userRepository, never()).saveAndFlush(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -57,7 +64,7 @@ class AuthServiceTest {
         // Simulates two concurrent registrations for the same email: both pass the
         // findByEmail() check (neither sees the other's uncommitted row), so the DB's
         // unique constraint is what actually catches the duplicate, on flush.
-        AuthService authService = new AuthService(userRepository, passwordEncoder);
+        AuthService authService = new AuthService(userRepository, passwordEncoder, eventPublisher);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("s3cret1234")).thenReturn("hashed");
         when(userRepository.saveAndFlush(any(User.class)))
@@ -65,5 +72,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.register("user@example.com", "s3cret1234"))
                 .isInstanceOf(DuplicateEmailException.class);
+
+        verify(eventPublisher, never()).publishEvent(any());
     }
 }
