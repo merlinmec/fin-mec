@@ -10,9 +10,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 public class AuthenticatedUser implements UserDetails, AuthenticatedPrincipal {
 
     private final User user;
+    private final UUID householdId;
 
-    public AuthenticatedUser(User user) {
+    public AuthenticatedUser(User user, UUID householdId) {
         this.user = user;
+        this.householdId = householdId;
     }
 
     public User getUser() {
@@ -22,6 +24,11 @@ public class AuthenticatedUser implements UserDetails, AuthenticatedPrincipal {
     @Override
     public UUID getUserId() {
         return user.getId();
+    }
+
+    @Override
+    public UUID getHouseholdId() {
+        return householdId;
     }
 
     @Override
