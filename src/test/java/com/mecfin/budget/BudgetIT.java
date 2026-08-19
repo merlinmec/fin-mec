@@ -94,7 +94,8 @@ class BudgetIT {
                 .header("X-XSRF-TOKEN", user.csrfToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateTransactionRequest(
-                        accountId, categoryId, type, amount, "Lancamento", LocalDate.now(), competenceMonth, status))
+                        accountId, categoryId, type, amount, "Lancamento", LocalDate.now(), competenceMonth, status,
+                        null))
                 .exchange()
                 .expectStatus().isCreated();
     }
