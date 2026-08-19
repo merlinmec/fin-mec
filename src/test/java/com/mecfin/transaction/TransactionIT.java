@@ -210,6 +210,12 @@ class TransactionIT {
                 .returnResult()
                 .getResponseBody();
 
+        // Confirma que transferPairId foi mesmo persistido (não só devolvido na resposta
+        // imediata do POST, que reflete só o objeto em memória) antes de cancelar.
+        TransactionResponse outBefore = user.authenticate(client.get().uri("/transactions/" + legs.get(0).id()))
+                .exchange().expectStatus().isOk().expectBody(TransactionResponse.class).returnResult().getResponseBody();
+        assertThat(outBefore.transferPairId()).isEqualTo(legs.get(1).id());
+
         user.authenticate(client.delete().uri("/transactions/" + legs.get(0).id()))
                 .exchange()
                 .expectStatus().isNoContent();

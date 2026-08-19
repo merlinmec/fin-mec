@@ -19,19 +19,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     // accountIds já vem pré-filtrado pelo household (AccountService.householdAccountIds()) -
     // transaction não tem household_id proprio, ver Transaction.java. Os demais filtros são
     // opcionais (":param IS NULL" pula o predicado quando o chamador não informa).
+    //
+    // competenceMonth usa CAST(:param AS date) mesmo no "IS NULL": sem o cast, esse parâmetro
+    // aparece numa posição ($N) cujo único uso sintático é "? IS NULL", que sozinho não dá ao
+    // Postgres contexto pra inferir o tipo (DATE) do parâmetro - falha em runtime com
+    // "could not determine data type of parameter $N", mesmo com o valor não-nulo. Os demais
+    // filtros (UUID/enum) não precisam do cast pelo mesmo motivo.
     @Query(value = "SELECT t FROM Transaction t WHERE t.accountId IN :accountIds "
                     + "AND (:accountId IS NULL OR t.accountId = :accountId) "
                     + "AND (:categoryId IS NULL OR t.categoryId = :categoryId) "
                     + "AND (:type IS NULL OR t.type = :type) "
                     + "AND (:status IS NULL OR t.status = :status) "
-                    + "AND (:competenceMonth IS NULL OR t.competenceMonth = :competenceMonth) "
+                    + "AND (CAST(:competenceMonth AS date) IS NULL OR t.competenceMonth = :competenceMonth) "
                     + "ORDER BY t.transactionDate DESC, t.createdAt DESC",
             countQuery = "SELECT COUNT(t) FROM Transaction t WHERE t.accountId IN :accountIds "
                     + "AND (:accountId IS NULL OR t.accountId = :accountId) "
                     + "AND (:categoryId IS NULL OR t.categoryId = :categoryId) "
                     + "AND (:type IS NULL OR t.type = :type) "
                     + "AND (:status IS NULL OR t.status = :status) "
-                    + "AND (:competenceMonth IS NULL OR t.competenceMonth = :competenceMonth)")
+                    + "AND (CAST(:competenceMonth AS date) IS NULL OR t.competenceMonth = :competenceMonth)")
     Page<Transaction> search(
             @Param("accountIds") List<UUID> accountIds,
             @Param("accountId") UUID accountId,

@@ -90,6 +90,10 @@ public class TransactionService {
         Transaction savedIn = transactionRepository.save(inLeg);
 
         savedOut.linkTransferPair(savedIn.getId());
+        // save() explícito por clareza (dirty-checking do Hibernate já cobriria isso no commit
+        // da transação, já que savedOut segue managed) - o bug real de um UPDATE que não
+        // persistia era updatable=false no mapeamento da coluna, corrigido em Transaction.java.
+        transactionRepository.save(savedOut);
         return List.of(savedOut, savedIn);
     }
 

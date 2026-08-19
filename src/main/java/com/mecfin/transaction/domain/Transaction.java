@@ -66,7 +66,12 @@ public class Transaction {
     @Column(name = "status", nullable = false, length = 20)
     private TransactionStatus status;
 
-    @Column(name = "transfer_pair_id", updatable = false)
+    // Sem updatable=false de propósito (diferente dos outros campos de transferência/parcela
+    // abaixo): a perna criada primeiro precisa de um UPDATE pós-insert genuíno pra apontar pra
+    // segunda perna (referência mútua, nenhuma das duas tem o id da outra no insert). A
+    // imutabilidade pretendida é garantida no nível de serviço (só linkTransferPair muta isso,
+    // update() não toca aqui), não pelo mapeamento JPA.
+    @Column(name = "transfer_pair_id")
     private UUID transferPairId;
 
     @Enumerated(EnumType.STRING)
