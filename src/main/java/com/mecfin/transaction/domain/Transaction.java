@@ -15,15 +15,20 @@ import java.time.YearMonth;
 import java.util.UUID;
 
 /**
- * Lançamento (receita/despesa). Referencia account e category só por id
- * (nunca relação JPA), mesmo padrão do resto do projeto. Não tem
- * {@code household_id} próprio — o household é resolvido via
- * {@code account.household_id} (ver V6__create_transactions_table.sql).
+ * Lançamento (receita/despesa/transferência). Referencia account e category só por id
+ * (nunca relação JPA), mesmo padrão do resto do projeto. Não tem {@code household_id}
+ * próprio - o household é resolvido via {@code account.household_id}.
  *
- * Escopo mínimo, adiantado da Fase 5 para o cálculo de gasto realizado do
- * módulo {@code budget} ser real: sem transferência entre contas, sem
- * parcelamento, sem recorrência — isso fica para quando a Fase 5
- * completa a esses recursos.
+ * Três "formatos" possíveis, expostos como factory methods nomeados em vez de um único
+ * construtor com uma dezena de parâmetros quase sempre nulos:
+ * <ul>
+ *   <li>{@link #of} - lançamento avulso (receita/despesa), com recorrência opcional (só
+ *       metadado, ver {@link RecurrenceRule}).</li>
+ *   <li>{@link #transferLeg} - uma perna de transferência entre contas; sempre criada em
+ *       par por {@code TransactionService.createTransfer}, nunca sozinha.</li>
+ *   <li>{@link #installmentLeg} - uma parcela de uma compra parcelada; todas as parcelas
+ *       são materializadas de uma vez por {@code TransactionService.createInstallments}.</li>
+ * </ul>
  */
 @Entity
 @Table(name = "transactions")
@@ -61,6 +66,26 @@ public class Transaction {
     @Column(name = "status", nullable = false, length = 20)
     private TransactionStatus status;
 
+    @Column(name = "transfer_pair_id", updatable = false)
+    private UUID transferPairId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transfer_direction", length = 10, updatable = false)
+    private TransactionDirection transferDirection;
+
+    @Column(name = "installment_number", updatable = false)
+    private Integer installmentNumber;
+
+    @Column(name = "installment_total", updatable = false)
+    private Integer installmentTotal;
+
+    @Column(name = "installment_group_id", updatable = false)
+    private UUID installmentGroupId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurrence_rule", length = 20)
+    private RecurrenceRule recurrenceRule;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -70,7 +95,7 @@ public class Transaction {
     protected Transaction() {
     }
 
-    public Transaction(
+    private Transaction(
             UUID accountId,
             UUID categoryId,
             TransactionType type,
@@ -78,7 +103,12 @@ public class Transaction {
             String description,
             LocalDate transactionDate,
             YearMonth competenceMonth,
-            TransactionStatus status) {
+            TransactionStatus status,
+            RecurrenceRule recurrenceRule,
+            TransactionDirection transferDirection,
+            Integer installmentNumber,
+            Integer installmentTotal,
+            UUID installmentGroupId) {
         this.accountId = accountId;
         this.categoryId = categoryId;
         this.type = type;
@@ -87,11 +117,70 @@ public class Transaction {
         this.transactionDate = transactionDate;
         this.competenceMonth = competenceMonth.atDay(1);
         this.status = status;
+        this.recurrenceRule = recurrenceRule;
+        this.transferDirection = transferDirection;
+        this.installmentNumber = installmentNumber;
+        this.installmentTotal = installmentTotal;
+        this.installmentGroupId = installmentGroupId;
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
+    public static Transaction of(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status,
+            RecurrenceRule recurrenceRule) {
+        return new Transaction(accountId, categoryId, type, amount, description, transactionDate, competenceMonth,
+                status, recurrenceRule, null, null, null, null);
+    }
+
+    public static Transaction transferLeg(
+            UUID accountId,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status,
+            TransactionDirection direction) {
+        return new Transaction(accountId, null, TransactionType.TRANSFER, amount, description, transactionDate,
+                competenceMonth, status, null, direction, null, null, null);
+    }
+
+    public static Transaction installmentLeg(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status,
+            int installmentNumber,
+            int installmentTotal,
+            UUID installmentGroupId) {
+        return new Transaction(accountId, categoryId, type, amount, description, transactionDate, competenceMonth,
+                status, null, null, installmentNumber, installmentTotal, installmentGroupId);
+    }
+
+    // Chamado só por TransactionService.createTransfer, depois que as duas pernas já têm id
+    // (transferPairId é uma referência mútua - não dá pra setar no construtor de nenhuma
+    // das duas). Público por convenção do projeto (nenhuma entidade daqui usa visibilidade
+    // package-private, ver Account/Category), não por falta de encapsulamento pretendido.
+    public void linkTransferPair(UUID pairId) {
+        this.transferPairId = pairId;
+        touch();
+    }
+
+    // category/type/amount/descrição/data seguem editáveis; campos estruturais de
+    // transferência e parcelamento (transferPairId, installment*) são imutáveis por design -
+    // ver TransactionService.update, que bloqueia edição de lançamento TRANSFER inteiro.
     public void update(
             UUID categoryId,
             TransactionType type,
@@ -99,7 +188,8 @@ public class Transaction {
             String description,
             LocalDate transactionDate,
             YearMonth competenceMonth,
-            TransactionStatus status) {
+            TransactionStatus status,
+            RecurrenceRule recurrenceRule) {
         this.categoryId = categoryId;
         this.type = type;
         this.amount = amount;
@@ -107,6 +197,7 @@ public class Transaction {
         this.transactionDate = transactionDate;
         this.competenceMonth = competenceMonth.atDay(1);
         this.status = status;
+        this.recurrenceRule = recurrenceRule;
         touch();
     }
 
@@ -156,6 +247,30 @@ public class Transaction {
 
     public TransactionStatus getStatus() {
         return status;
+    }
+
+    public UUID getTransferPairId() {
+        return transferPairId;
+    }
+
+    public TransactionDirection getTransferDirection() {
+        return transferDirection;
+    }
+
+    public Integer getInstallmentNumber() {
+        return installmentNumber;
+    }
+
+    public Integer getInstallmentTotal() {
+        return installmentTotal;
+    }
+
+    public UUID getInstallmentGroupId() {
+        return installmentGroupId;
+    }
+
+    public RecurrenceRule getRecurrenceRule() {
+        return recurrenceRule;
     }
 
     public Instant getCreatedAt() {
