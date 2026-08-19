@@ -45,4 +45,13 @@ public class AccountService {
     public void delete(UUID id) {
         get(id).softDelete();
     }
+
+    // Usado por módulos que escopam por household via account_id (ex.: transaction), que não
+    // tem household_id próprio. Inclui conta soft-deleted de propósito: histórico de
+    // lançamentos de uma conta excluída continua pertencendo ao household.
+    public List<UUID> householdAccountIds() {
+        return accountRepository.findAllByHouseholdId(CurrentUser.householdId()).stream()
+                .map(Account::getId)
+                .toList();
+    }
 }
