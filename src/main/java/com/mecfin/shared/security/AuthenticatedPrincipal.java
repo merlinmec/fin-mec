@@ -5,4 +5,6 @@ import java.util.UUID;
 public interface AuthenticatedPrincipal {
 
     UUID getUserId();
+
+    UUID getHouseholdId();
 }
