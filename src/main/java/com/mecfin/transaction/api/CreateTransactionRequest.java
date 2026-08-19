@@ -1,5 +1,6 @@
 package com.mecfin.transaction.api;
 
+import com.mecfin.transaction.domain.RecurrenceRule;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import jakarta.validation.constraints.NotBlank;
@@ -19,5 +20,6 @@ public record CreateTransactionRequest(
         @NotBlank @Size(max = 255) String description,
         @NotNull LocalDate transactionDate,
         @NotNull YearMonth competenceMonth,
-        TransactionStatus status) {
+        TransactionStatus status,
+        RecurrenceRule recurrenceRule) {
 }

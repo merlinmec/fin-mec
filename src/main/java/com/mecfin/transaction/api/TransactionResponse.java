@@ -1,6 +1,8 @@
 package com.mecfin.transaction.api;
 
+import com.mecfin.transaction.domain.RecurrenceRule;
 import com.mecfin.transaction.domain.Transaction;
+import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import java.math.BigDecimal;
@@ -19,6 +21,12 @@ public record TransactionResponse(
         LocalDate transactionDate,
         YearMonth competenceMonth,
         TransactionStatus status,
+        UUID transferPairId,
+        TransactionDirection transferDirection,
+        Integer installmentNumber,
+        Integer installmentTotal,
+        UUID installmentGroupId,
+        RecurrenceRule recurrenceRule,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -33,6 +41,12 @@ public record TransactionResponse(
                 transaction.getTransactionDate(),
                 transaction.getCompetenceMonth(),
                 transaction.getStatus(),
+                transaction.getTransferPairId(),
+                transaction.getTransferDirection(),
+                transaction.getInstallmentNumber(),
+                transaction.getInstallmentTotal(),
+                transaction.getInstallmentGroupId(),
+                transaction.getRecurrenceRule(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt());
     }
