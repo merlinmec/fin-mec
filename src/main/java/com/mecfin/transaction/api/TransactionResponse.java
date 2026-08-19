@@ -1,6 +1,6 @@
 package com.mecfin.transaction.api;
 
-import com.mecfin.transaction.domain.RecurrenceRule;
+import com.mecfin.shared.domain.RecurrenceRule;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;

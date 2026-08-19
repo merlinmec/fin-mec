@@ -1,5 +1,6 @@
 package com.mecfin.transaction.domain;
 
+import com.mecfin.shared.domain.RecurrenceRule;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
