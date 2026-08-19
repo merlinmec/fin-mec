@@ -7,153 +7,201 @@ e o que estudar pra sustentar essas decisões numa conversa técnica.)
 
 1. O QUE É O PROJETO
 ---------------------
-"mec-fin" (artefato Maven: mec-fin, pacote com.mecfin) é descrito no próprio
-pom.xml como "Plataforma pessoal de gestão financeira" — um app para uma
-pessoa controlar as próprias finanças (o domínio "identity" já existe;
-"transações", "categorias", "orçamento" etc. ainda não têm nenhuma classe
-no código — ver seção 3 sobre o estágio real do projeto).
+"mec-fin" (artefato Maven: mec-fin, pacote com.mecfin) é uma plataforma
+pessoal de gestão financeira, com arquitetura pronta para múltiplos
+usuários desde o início mesmo sendo uso individual hoje. Produto de
+referência declarado: o Organizze (app brasileiro de finanças pessoais).
 
 Stack: Spring Boot 4.1 / Java 21, Postgres 18 (via Docker Compose),
 Flyway para migrações, springdoc para OpenAPI, autenticação por sessão
 (cookie), Argon2id para senha, Bucket4j+Caffeine para rate limiting.
 
-IMPORTANTE — estágio real do projeto: hoje (14/08/2026, 4 commits) o
-projeto tem SOMENTE dois pedaços prontos:
-  - Fase 0: esqueleto (config, tratamento de erro, observabilidade, CI)
-  - Fase 1: autenticação (registro, login, logout, sessão)
-Nenhuma funcionalidade financeira (lançar despesa, categorizar, ver saldo,
-orçamento) existe ainda no código. Isso significa que, hoje, o projeto
-"resolve" ainda nada do problema financeiro em si — ele resolve o
-problema de "como autenticar um usuário de forma segura", que é
-pré-requisito para o que vem depois. Ao explicar o projeto pra alguém,
-seja honesto sobre isso: é a fundação de um gestor financeiro pessoal,
-não um gestor financeiro pessoal funcionando ainda.
+ESTÁGIO REAL DO PROJETO (19/08/2026): o MVP inteiro (Fases 0-7 do
+roadmap) está pronto, testado e mergeado na main — 8 módulos de domínio:
 
-Para quem: parece um projeto pessoal/portfólio (não há indício de deploy
-em produção, base de usuários real, ou multi-tenant além de "cada usuário
-vê só os próprios dados" via CurrentUser). Pelas mensagens de commit em
-português e o domínio "gestão financeira pessoal", o público-alvo natural
-é o mesmo mercado dos apps brasileiros de finanças pessoais (ver seção 2).
+  - identity     — registro/login/logout via sessão
+  - household    — espaço financeiro compartilhado (hoje 1 usuário = 1
+                   household automático; schema já suporta convidar um
+                   segundo membro sem migração futura)
+  - account      — contas financeiras (corrente/poupança/carteira/
+                   investimento), soft delete
+  - category     — categorias de receita/despesa, com 6 categorias
+                   padrão do sistema (visíveis a todo household, não
+                   editáveis)
+  - budget       — limite de gasto por categoria/mês; gasto realizado e
+                   percentual consumido são SEMPRE calculados na leitura
+                   a partir de transaction, nunca persistidos
+  - transaction  — lançamentos: receita/despesa, transferência entre
+                   contas (duas pernas pareadas), parcelamento
+                   (materializa todas as parcelas na criação),
+                   recorrência (só metadado, sem geração automática de
+                   ocorrências futuras — decisão deliberada, ver seção 3)
+  - bill         — contas a pagar, com baixa que gera uma transaction
+                   real; status "vencida" também é calculado na leitura,
+                   nunca persistido
+  - dashboard    — sem tabela própria; agrega os outros seis módulos
+                   num único endpoint (saldo, receitas/despesas do mês,
+                   próximos vencimentos, gasto por categoria, orçamentos
+                   do mês, previsão de saldo simples)
 
-Que problema o projeto busca resolver (quando as fases financeiras
-existirem): ajudar uma pessoa física a acompanhar receitas/despesas e
-organizar a vida financeira — o mesmo problema que Mobills, Organizze,
-GuiaBolso (descontinuado) e, na vertente open-source/self-hosted,
-Firefly III e Actual Budget já resolvem hoje.
+143 testes (54 unitários + 89 de integração via Testcontainers com
+Postgres real), mvn verify limpo. Todo o histórico do git é organizado
+em branch-per-fase + Pull Request (nunca commit direto na main) —
+inclusive as fases 0-2, que originalmente tinham sido commitadas direto
+e foram reorganizadas retroativamente (ver seção 5).
+
+Para quem: ainda tem cara de projeto pessoal/portfólio (sem deploy em
+produção, sem base de usuários real), mas a decisão de household
+compartilhado desde a Fase 2 é o primeiro sinal concreto de que a
+arquitetura já pensa em multiusuário de verdade, não só "um CurrentUser
+por linha do banco".
+
+O que falta pro produto ficar completo frente ao Organizze: cartão de
+crédito + fatura (Fase 8), integração bancária real via Open Finance
+(Fase 9, deliberadamente adiada — ver seção 2), notificações de
+vencimento (Fase 10) e deploy em produção (Fase 11).
 
 
 2. COMO SE COMPARA A SOLUÇÕES SIMILARES NO MERCADO
 ----------------------------------------------------
-No mercado brasileiro de apps de finanças pessoais, os players mais
-citados em comparativos de 2025/2026 são Mobills, Organizze, Minhas
-Economias e Spendee; o GuiaBolso foi comprado pelo PicPay e descontinuado
-em favor da integração ao próprio app do PicPay. O diferencial que mais
-aparece nesses comparativos hoje é Open Finance — conectar contas de
-bancos diferentes automaticamente em vez de lançamento manual — que é
-exatamente o tipo de feature que exige integração bancária regulada e
-está fora do escopo atual (autenticação apenas) deste projeto.
-Fonte: https://www.serasa.com.br/score/blog/opcoes-de-aplicativo-para-controle-financeiro/,
-https://www.mobills.com.br/blog/aplicativos/apps-de-controle-financeiro/
+No mercado brasileiro, os players mais citados em comparativos de
+2025/2026 são Mobills, Organizze, Minhas Economias e Spendee; o
+GuiaBolso foi comprado pelo PicPay e descontinuado. O diferencial mais
+citado nesses comparativos é Open Finance — conectar contas de bancos
+diferentes automaticamente em vez de lançamento manual — que este
+projeto deliberadamente adia para a Fase 9 (ver módulo bankprovider no
+roadmap arquitetural: porta/adapter isolando o provedor, para não
+acoplar Account/Transaction a um fornecedor comercial específico como
+Pluggy ou Belvo antes da hora).
 
-Na vertente open-source/self-hosted — mais próxima do que este projeto
-parece ser em espírito (código aberto, rodando em container próprio,
-sem vínculo com uma fintech) — as referências são Firefly III e Actual
-Budget. Firefly III segue contabilidade de partida dobrada (double-entry
-bookkeeping): toda transação afeta duas contas, útil para quem tem
-múltiplas contas/cartões e quer reconciliação rigorosa. Actual Budget
-segue orçamento de base zero (zero-based budgeting, inspirado no YNAB):
-cada real recebido é alocado a uma categoria antes de ser gasto, com
-foco em simplicidade e configuração rápida (~15 min).
-Fonte: https://beancount.io/blog/2026/07/26/firefly-iii-vs-actual-budget-self-hosted-open-source-budgeting-guide,
-https://selfhostable.dev/blog/firefly-iii-vs-actual-budget-self-hosted-finance/
+Na vertente open-source/self-hosted, as referências continuam sendo
+Firefly III (partida dobrada / double-entry bookkeeping — toda
+transação afeta duas contas) e Actual Budget (orçamento de base zero,
+inspirado no YNAB). A decisão de modelagem deste projeto, agora que
+existe modelo de dados real, ficou num meio-termo deliberado: não é
+partida dobrada completa (uma despesa comum afeta só uma conta, não
+duas) — só transferência entre contas usa um par de lançamentos
+(transfer_pair_id ligando as duas pernas, cada uma com account_id e
+direção OUT/IN próprios). Orçamento é por categoria/mês com limite
+plano (mais perto do "envelope" do Actual Budget que da partida dobrada
+do Firefly III), mas sem a exigência de alocar 100% da renda antes de
+gastar (zero-based) — é limite de alerta, não bloqueio de gasto.
 
-Posicionamento honesto deste projeto hoje: ele ainda não compete com
-nenhum desses — não há modelo de dados financeiro nenhum implementado.
-O que já existe (autenticação por sessão, rate limiting, tratamento de
-erro padronizado RFC 7807, correlação de logs) é infraestrutura que
-qualquer um desses produtos também precisa ter, mas não é o que os
-diferencia entre si. Quando as próximas fases chegarem, a decisão que vai
-definir o posicionamento real é: "mec-fin" vai ser mais parecido com
-Firefly III (partida dobrada, multi-conta, rigor contábil) ou com Actual
-Budget (envelope/orçamento simples, foco em não gastar mais do que
-planejado)? Essa decisão ainda não foi tomada no código — vale registrar
-explicitamente quando for.
+Posicionamento honesto hoje: o MVP cobre o núcleo funcional do
+Organizze (contas, categorias, orçamento, lançamentos incl.
+recorrentes/parcelados/transferência, contas a pagar, dashboard com
+previsão de saldo) — falta cartão de crédito/fatura e Open Finance para
+ser funcionalmente equivalente. A diferenciação real e deliberada frente
+ao Organizze é o modelo de compartilhamento: o Organizze compartilha
+conta via credencial compartilhada (duas pessoas logando com o mesmo
+usuário/senha); este projeto modela household com membros e roles
+(OWNER/MEMBER) desde a Fase 2 — login próprio por pessoa, mesmo espaço
+financeiro. O convite de um segundo membro de verdade (UI/fluxo) ainda
+não está implementado — só o schema, de propósito (ver seção 3).
 
 
 3. DECISÕES TÉCNICAS TOMADAS E POR QUÊ
 -----------------------------------------
-O histórico é curto (3 commits de conteúdo + 1 merge), então não dá para
-reconstruir uma grande "evolução" de arquitetura — mas HÁ um exemplo claro
-de decisão tomada, revisada, e corrigida em cima da mesma feature, que é o
-caso mais valioso para estudar aqui:
+O histórico cobre 8 fases completas agora, então dá pra ver não só
+decisões isoladas, mas um padrão de disciplina se repetindo — vale
+estudar o padrão tanto quanto cada decisão específica.
 
-a) Fase 0 → Fase 1 → correção de Fase 1 (o único ciclo completo do
-   histórico):
-   - Commit a2c177b (fase-0): monta o esqueleto com "negar tudo por
-     padrão, liberar só /actuator/health" — postura de segurança
-     "default deny" desde o primeiro commit, antes mesmo de existir
-     qualquer rota de negócio.
-   - Commit 7484164 (fase-1): adiciona registro/login/logout via sessão
-     (cookie HttpOnly+Secure+SameSite), Argon2id, CSRF via cookie
-     legível por JS (Spring Security spa()), e rate limiting com
-     Bucket4j.
-   - Commit f1f9b57 (fix): o próprio autor rodou um /code-review sobre o
-     diff da Fase 1 e achou DOIS problemas reais antes de dar por
-     encerrada a feature:
-       1. Race condition em AuthService.register: duas requisições
-          concorrentes com o mesmo e-mail passavam as duas pelo
-          findByEmail() antes de qualquer commit no banco (clássica
-          janela check-then-act), e a segunda estourava
-          DataIntegrityViolationException não tratada na constraint
-          única — virando 500 em vez do 409 que a API deveria devolver.
-          Correção: trocar save() por saveAndFlush() dentro de um
-          try/catch que recaptura a violação e relança como
-          DuplicateEmailException.
-       2. DoS de memória no RateLimiter: o mapa de buckets era um
-          ConcurrentHashMap simples, sem limite nem expiração. Como a
-          chave do rate limit de login é IP+email — e email é dado
-          fornecido pelo cliente, sem qualquer validação prévia — um
-          atacante batendo em /auth/login com e-mails distintos fazia o
-          heap crescer sem parar. Correção: trocar por cache Caffeine
-          com expireAfterAccess de 10 min e maximumSize de 50 mil
-          entradas.
-   Isso é a evidência mais direta do histórico: "código passou por
-   review, dois bugs de concorrência/segurança foram achados, e a
-   correção foi feita num commit separado e documentado" — não é uma
-   mudança de rumo de arquitetura, é o ciclo saudável de "implementei →
-   revisei → corrigi" acontecendo de forma registrada no histórico.
+a) Household compartilhado, decidido cedo mesmo custando escopo extra
+   (Fase 2) — dado financeiro pertence a um household_id, nunca a um
+   user_id direto. Um listener síncrono (dentro da mesma transação de
+   registro) cria automaticamente um household com o usuário como OWNER
+   — hoje transparente (1 usuário = 1 household), mas a fronteira já
+   existe pra convidar um segundo membro sem migração de schema depois.
+   Essa decisão foi tratada com o mesmo peso de "Money" e "autenticação"
+   no roadmap arquitetural: categoria de decisão que é cara de reverter
+   depois (mudar user_id→household_id em toda tabela financeira já
+   existente seria retrabalho grande), por isso decidida cedo mesmo sem
+   uso imediato do multiusuário real.
 
-b) Autenticação por sessão (cookie), não JWT — decisão tomada direto na
-   Fase 1, sem indício de ter sido testada de outro jeito antes. O
-   SecurityConfig usa HttpSessionSecurityContextRepository e CSRF via
-   Spring Security spa() (cookie de CSRF legível por JS), o que só faz
-   sentido no modelo de sessão com cookie — é a combinação clássica para
-   uma SPA first-party (frontend e backend no mesmo domínio/confiança).
-   Isso evita a classe inteira de problemas de expiração/revogação de
-   token que JWT stateless traria (ver seção 4).
+b) "Derivado, nunca persistido" como padrão recorrente — não é uma
+   decisão isolada, é um princípio que se repete em três módulos
+   diferentes, deliberadamente, pra nunca duplicar fonte de verdade nem
+   precisar de job agendado só pra manter um campo sincronizado:
+     - Budget.spent / percentageUsed: somados de transaction na leitura
+       (BudgetService.toView), nunca gravados.
+     - Bill status OVERDUE: nunca é um valor possível na coluna do
+       banco (só OPEN/PAID/CANCELED são persistidos) — é calculado
+       (OPEN + due_date no passado) toda vez que o bill é lido
+       (BillView.effectiveStatus()).
+     - Dashboard inteiro: módulo sem tabela própria, cada request
+       recalcula saldo/receita/despesa/previsão na hora, agregando os
+       outros seis módulos.
 
-c) Argon2id via Bouncy Castle, não bcrypt — pom.xml declara
-   explicitamente a dependência org.bouncycastle:bcprov-jdk18on com o
-   comentário "Argon2PasswordEncoder delegates to Bouncy Castle's Argon2
-   implementation at runtime" — ou seja, o autor sabia que precisava
-   dessa dependência de propósito, não foi acidente de build quebrado.
+c) Transaction com três "formatos" via factory methods nomeados, não um
+   construtor gigante — Transaction.of() (lançamento avulso),
+   Transaction.transferLeg() (uma perna de transferência, sempre criada
+   em par) e Transaction.installmentLeg() (uma parcela). Evita uma
+   assinatura de construtor com uma dezena de parâmetros quase sempre
+   nulos dependendo do caso de uso — decisão de legibilidade que só fez
+   sentido depois que o domínio cresceu (na Fase 4, com só receita/
+   despesa, um construtor único ainda fazia sentido).
 
-d) CurrentUser como ponto único de acesso ao usuário autenticado — a
-   classe já nasce (na Fase 1) com o comentário explícito de que é
-   "mitigação de IDOR/BOLA" e que todo módulo futuro deve escopar
-   consultas por CurrentUser.id(), nunca por um id vindo puro do
-   cliente. É uma decisão de arquitetura pensada para módulos que ainda
-   não existem (transações, orçamento) — o autor está pavimentando o
-   padrão de autorização antes de precisar dele.
+d) Transferência entre contas: referência mútua resolvida em duas
+   etapas — a perna criada primeiro (transferLeg) não tem como saber o
+   id da segunda até ela existir, então: salva a primeira, cria a
+   segunda já apontando pra primeira, salva a segunda, e só então volta
+   e liga a primeira na segunda. TransactionService.cancel() cascateia
+   pro par inteiro (cancelar só um lado deixaria dinheiro "sumindo" de
+   uma conta sem aparecer na outra), e update() bloqueia edição de uma
+   perna de transferência inteira (editar só um lado dessincronizaria o
+   par — a saída correta é cancelar e criar de novo).
 
-e) Erros nunca vazam detalhe interno — GlobalExceptionHandler tem um
-   catch-all (Exception.class) que loga a stacktrace completa mas
-   devolve só "Ocorreu um erro inesperado" ao cliente; e existe um
-   ProblemDetailWriter separado especificamente porque a security filter
-   chain roda ANTES do DispatcherServlet, então o @RestControllerAdvice
-   não consegue interceptar um 401 disparado ali dentro — precisa de um
-   segundo caminho de escrita de erro para manter o mesmo formato
-   RFC 7807 em ambos os casos.
+e) Recorrência decidida como só metadado — e essa decisão foi
+   REAFIRMADA quando testada de novo. Na Fase 5 (Transaction), a
+   pergunta foi "construir o motor de geração de ocorrências futuras
+   agora?" — resposta: não, só o campo recurrence_rule como metadado,
+   porque Bill (Fase 6) ia precisar do mesmo conceito e não fazia
+   sentido construir o motor duas vezes. Quando a Fase 6 chegou, a
+   pergunta foi feita de novo (agora que Bill realmente precisava) — e
+   a resposta continuou sendo "só metadado por enquanto". É um exemplo
+   real de não expandir escopo só porque "chegou a hora", mesmo tendo
+   sido a própria justificativa usada pra adiar da primeira vez.
+
+f) Comunicação entre módulos por chamada direta de serviço, não evento
+   assíncrono — BillService.pay() chama TransactionService.create()
+   diretamente (mesmo padrão já previsto no roadmap arquitetural desde
+   antes de Bill existir: "BillService chama TransactionService ao
+   registrar pagamento"). Dentro da mesma transação, então se a criação
+   da transaction falhar, a baixa do bill reverte inteira — nenhum
+   estado parcial ("bill marcado como pago mas sem lançamento
+   correspondente") é possível.
+
+g) Saldo contábil vs. saldo disponível, calculados juntos no Dashboard
+   — contábil soma todo lançamento POSTED, disponível só os com
+   transactionDate até hoje. Existe pra evitar a ambiguidade clássica de
+   apps financeiros mal feitos: um lançamento futuro já marcado como
+   POSTED (ex.: salário agendado pra semana que vem) não deveria inflar
+   "quanto eu tenho agora".
+
+h) Padrão de autorização replicado em todo módulo financeiro, testado
+   sistematicamente — todo *IT do projeto (AccountIT, CategoryIT,
+   BudgetIT, TransactionIT, BillIT) tem pelo menos um teste registrando
+   dois usuários (dois households automáticos) e confirmando que um
+   nunca lista/lê/atualiza/exclui dado do outro. E toda validação de
+   campo de payload que referencia outro módulo (accountId numa
+   transaction, categoryId num budget) segue a mesma regra: inválido ou
+   não visível ao household vira 400 (IllegalArgumentException), nunca
+   404 — 404 é reservado pro recurso primário do próprio endpoint,
+   nunca pra um campo dentro do corpo da requisição.
+
+i) O ciclo "implementei → mvn verify → achei bug real → corrigi" se
+   repetiu, e não só na Fase 1 (ver histórico antigo) — na Fase 5, ao
+   rodar a suíte depois de implementar transferência, dois bugs reais
+   apareceram: (1) a coluna transfer_pair_id estava mapeada com
+   updatable=false, que descarta silenciosamente qualquer UPDATE nela —
+   o cancelamento em cascata da perna pareada simplesmente não
+   funcionava, porque o id nunca chegava ao banco (só sumia sem erro,
+   sem warning); e (2) um filtro de data opcional (competenceMonth)
+   quebrava no Postgres com "could not determine data type of
+   parameter" porque o parâmetro só aparecia num "? IS NULL" sem
+   comparação direta com a coluna na mesma posição — corrigido com
+   CAST(:param AS date). Os dois viraram teste de regressão antes do PR
+   ser aberto (ver seção 5 para o detalhe de como cada um foi isolado).
 
 
 4. TEMAS PARA ESTUDAR
@@ -161,115 +209,159 @@ e) Erros nunca vazam detalhe interno — GlobalExceptionHandler tem um
 Cada tema abaixo está amarrado a algo específico que você vai encontrar
 neste código — não é lista genérica.
 
-- Condição de corrida check-then-act (TOCTOU) em fluxos de escrita
-  única (registro de usuário): por que "verificar que não existe, depois
-  inserir" não é atômico entre duas requisições concorrentes, e por que a
-  correção real é ou (a) confiar na constraint única do banco e tratar a
-  exceção, ou (b) usar SELECT ... FOR UPDATE / upsert. O commit f1f9b57
-  escolheu (a). Saber explicar por que (a) é suficiente aqui (chave é
-  única no banco) e quando NÃO seria (regras de negócio mais complexas
-  que uma constraint não cobre).
+- Multi-tenancy por "espaço compartilhado" (household) vs. por usuário
+  direto: por que household_id em vez de user_id muda a query de
+  autorização de "é meu?" para "eu pertenço ao dono disso?", e por que
+  essa mudança é muito mais barata de fazer ANTES de existir dado do que
+  depois (migração de toda tabela + toda checagem de authorization).
 
-- saveAndFlush() vs save() no Spring Data JPA: por que trocar um pelo
-  outro muda o momento em que a violação de constraint aparece (dentro
-  do seu try/catch vs. só no commit da transação, fora do seu controle).
-  Isso é o núcleo técnico da correção do commit f1f9b57.
+- Padrão "derivado, nunca persistido" para dado calculável: quando vale
+  a pena recalcular toda leitura (Budget.spent, Bill OVERDUE, Dashboard
+  inteiro) em vez de manter um campo sincronizado via trigger/job/
+  evento. Trade-off: mais barato e sem risco de inconsistência, mas cada
+  leitura custa uma query a mais — só compensa em volume baixo/médio,
+  não em dashboards de alta escala.
 
-- Rate limiting com chave parcialmente controlada pelo atacante: o
-  RateLimiter usa IP+email como chave ANTES de validar se a credencial é
-  real — então "email" é essencialmente uma string arbitrária vinda do
-  cliente. Estudar por que isso é diferente de rate-limit por IP puro, e
-  por que a solução (Caffeine com maximumSize + expireAfterAccess) é uma
-  política de eviction, não uma "correção" no sentido de impedir o
-  ataque — ela limita o dano, não impede a tentativa.
+- Projeções JPA (interfaces com getters, ex. AccountBalanceProjection)
+  e JPQL com CASE WHEN + agregação (SUM condicional por tipo de
+  lançamento) — como o Spring Data JPA mapeia uma query de agregação
+  pra uma interface sem precisar de uma entidade JPA completa nem DTO
+  manual com construtor de projeção.
 
-- Cookie de sessão vs JWT para autenticação de SPA — e por que esse
-  projeto escolheu sessão: dá para explicar as vantagens (revogação
-  trivial — apaga a sessão do lado servidor —, sem necessidade de
-  refresh token) e as desvantagens (não escala horizontalmente sem
-  sessão compartilhada/sticky session, não serve bem para app
-  mobile/terceiro consumindo a API). Vale estudar CSRF nesse contexto
-  também: cookie de sessão exige proteção CSRF (por isso o
-  CsrfConfigurer.spa() aqui), enquanto JWT em header normalmente não
-  precisa.
+- Enum literal totalmente qualificado em JPQL
+  (com.mecfin.transaction.domain.TransactionType.INCOME) dentro de um
+  CASE WHEN — alternativa a comparar string literal contra coluna
+  @Enumerated(STRING), mais seguro a refactor (renomear o enum quebra
+  compilação, não silenciosamente em runtime).
 
-- Argon2id — parâmetros (memória, iterações, paralelismo) e por que
-  Argon2id é considerado hoje mais resistente a ataque por hardware
-  dedicado (GPU/ASIC) que bcrypt/PBKDF2. Vale entender os defaults que
-  Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8() aplica e quando
-  valeria a pena ajustá-los.
+- Spring Data Page/Pageable e por que nunca devolver
+  org.springframework.data.domain.Page direto num controller — a
+  PagedResponse<T> deste projeto (shared.web) é o padrão de envelope
+  pra desacoplar o contrato da API da representação interna do Spring
+  Data, que pode mudar entre versões.
 
-- RFC 7807 (Problem Details for HTTP APIs) e por que padronizar erro em
-  todo o ponto de saída da API (inclusive dentro da security filter
-  chain, via ProblemDetailWriter) evita que o cliente da API tenha que
-  tratar dois formatos de erro diferentes dependendo de ONDE a exceção
-  foi lançada.
+- Condição de corrida check-then-act em constraint única, e o mesmo
+  idioma (saveAndFlush + catch de DataIntegrityViolationException)
+  reaplicado em dois lugares diferentes do projeto por dois motivos
+  diferentes: AuthService.register (email único) e BudgetService.create
+  (unique constraint household+categoria+mês) — vale comparar os dois
+  para ver que é o MESMO padrão resolvendo dois problemas de negócio
+  diferentes, não uma coincidência.
 
-- IDOR/BOLA (Insecure/Broken Object Level Authorization) e por que
-  CurrentUser existe como único ponto de acesso ao id do usuário
-  autenticado. Esse é o tema mais importante para as PRÓXIMAS fases: no
-  momento em que existir uma tabela de "transações" ou "contas", a
-  pergunta central de segurança vai ser "toda query está filtrando por
-  CurrentUser.id(), ou dá para um usuário logado passar o id de outro
-  usuário e ver dados alheios?".
+- @Column(updatable = false) e por que ele silenciosamente ignora
+  qualquer UPDATE, sem lançar exceção nem warning — e por que isso é
+  perigoso especificamente em referências mútuas (duas linhas que
+  precisam apontar uma pra outra), onde pelo menos uma delas
+  estruturalmente precisa de um UPDATE pós-insert genuíno.
 
-- Testcontainers para teste de integração com banco real (Postgres),
-  em vez de H2 em memória: por que isso evita divergência de
-  comportamento entre o banco de teste e o de produção (o próprio caso
-  de constraint única / DataIntegrityViolationException deste projeto é
-  um exemplo de comportamento que um H2 mal configurado poderia mascarar).
+- Inferência de tipo de parâmetro JDBC no Postgres: por que um parâmetro
+  usado só em "? IS NULL" (nunca comparado diretamente contra uma
+  coluna tipada na mesma posição) não dá contexto suficiente pro
+  planner inferir o tipo, mesmo com um valor não-nulo em runtime — e
+  por que CAST(:param AS tipo) resolve sem mudar a semântica da query.
+
+- Modelagem de dinheiro/data em transferência e parcelamento: por que
+  amount é sempre armazenado como magnitude positiva com um campo type/
+  direction separado (em vez de sinal embutido no valor), e por que
+  competence_month é um campo separado de transaction_date (fatura de
+  cartão fechada num mês, competência em outro — mesmo raciocínio já
+  seria necessário pra Fase 8/cartão de crédito).
+
+- Cookie de sessão vs JWT, Argon2id, RFC 7807, IDOR/BOLA via
+  CurrentUser, Testcontainers — temas já cobertos pela versão anterior
+  deste arquivo (Fases 0-1), continuam válidos e agora têm muito mais
+  código exercitando cada um (ex.: IDOR/BOLA testado sistematicamente
+  em 5 módulos financeiros, não só documentado em comentário).
 
 
 5. DIFICULDADES/PROBLEMAS REAIS ENCONTRADOS
 -----------------------------------------------
-O histórico tem só um commit de correção (f1f9b57), mas ele é rico:
-documenta EXPLICITAMENTE, na própria mensagem, dois bugs reais achados
-via revisão de código sobre a Fase 1 recém-implementada, antes de
-qualquer um deles ter acontecido em produção:
+Bem mais rico agora que existem 8 fases de histórico real:
 
-  1. Race condition no registro de usuário (check-then-act) — resultava
-     em 500 em vez de 409 sob concorrência (duas requisições de
-     registro com o mesmo e-mail, quase simultâneas).
-  2. Vetor de DoS de memória no rate limiter — mapa de buckets sem
-     limite, com parte da chave (email) vindo direto do cliente sem
-     validação prévia.
+a) Os dois bugs da Fase 5 (transferência/parcelamento) — encontrados
+   rodando mvn verify antes de abrir o PR, não em produção:
+     1. Cancelamento em cascata de transferência não funcionava: o teste
+        de integração cancelava uma perna e a outra continuava POSTED.
+        Isolado adicionando uma asserção extra que confirmava via GET
+        numa request separada (não só a resposta imediata do POST, que
+        só reflete o objeto em memória) que transfer_pair_id realmente
+        tinha sido persistido — e não tinha. Causa raiz:
+        updatable=false na coluna.
+     2. Filtro de data opcional em /transactions quebrava com 500 e
+        "could not determine data type of parameter $10" — mesmo com
+        um valor de data válido informado. Causa: Postgres não conseguia
+        inferir o tipo de um parâmetro usado só em "? IS NULL".
+   Os dois viraram teste de regressão (TransactionIT) antes do PR #13
+   ser aberto.
 
-O commit registra também que um novo teste foi escrito especificamente
-para cobrir o cenário de race condition, e que a suíte completa (8
-testes unitários + 11 de integração) passou depois da correção — ou
-seja, o problema foi fechado com teste de regressão, não só com a
-correção pontual.
+b) Correção de processo em cascata sobre o próprio histórico do repo
+   (18-19/08/2026) — o usuário lembrou de ter instruído "sempre
+   branch+PR, nunca commit direto" e "nunca trailer de co-autoria", e
+   ao verificar o histórico real do fin-mec, várias fases (incluindo
+   fases já mergeadas e, num primeiro diagnóstico errado, uma fase que
+   na verdade JÁ tinha ido por PR real) precisaram ser reorganizadas.
+   O processo revelou um erro de diagnóstico próprio no meio do caminho
+   (assumir que uma fase tinha sido commitada direto quando na verdade
+   tinha PR real, só que mergeado por rebase — sem merge commit visível
+   no git log) — corrigido antes de causar dano (force-push só depois
+   de confirmar com gh pr list). Resultado: histórico inteiro
+   reescrito, PRs #7-#10 recriando fases 0-2 retroativamente sem
+   trailer de co-autoria, sem perder nenhum conteúdo (confirmado por
+   diff de árvore antes/depois). Lição prática registrada em memória:
+   auditar Co-Authored-By num repo pequeno sempre com `git log --all`
+   sem limitar quantidade — um `git log -5` recente escondeu 2 dos 4
+   commits afetados na primeira checagem.
 
-Fora esse ciclo, não há outra evidência de dificuldade no histórico
-(sem commits de "revert", sem retrabalho de arquitetura visível em só
-4 commits). Seria desonesto inventar mais problemas do que o histórico
-sustenta — o correto é dizer que, até aqui, o projeto teve uma execução
-linear (fase 0 → fase 1 → correção via review) sem grandes reviravoltas.
+c) Decisão de ordem de implementação forçada por dependência real —
+   Budget (Fase 4 do roadmap original) precisa de Transaction (Fase 5)
+   pra calcular gasto realizado de verdade. Em vez de implementar Budget
+   com um placeholder ("gasto = 0, sempre"), a decisão foi adiantar um
+   Transaction mínimo (só receita/despesa, sem transferência/parcela/
+   recorrência) dentro da própria Fase 4, e completar o resto de
+   Transaction na Fase 5 depois. Evitou construir código que seria
+   descartado, ao custo de fase 4 "invadir" escopo da fase 5.
+
+Fora esses três pontos, a execução das 8 fases foi bastante linear —
+cada fase seguiu o padrão já estabelecido nas anteriores (schema →
+domain/infra → application → api → testes, em commits separados dentro
+de uma branch, PR aberto, merge só depois de confirmação explícita).
 
 
 6. COMO EXPLICAR ESSE PROJETO PRA ALGUÉM DE FORA
 -----------------------------------------------------
-"O mec-fin é a base de um app pessoal de controle financeiro — hoje ele
-ainda não guarda nenhuma despesa ou receita, porque o que foi construído
-até agora é só a parte de login: uma pessoa consegue se cadastrar, entrar
-e sair da conta de forma segura, com a senha protegida por um algoritmo
-resistente a ataque de força bruta (Argon2id), proteção contra excesso de
-tentativas de login, e um sistema de erro padronizado para a API. Depois
-de terminar essa base, o passo natural é construir a parte que realmente
-resolve o problema do usuário — lançar e organizar transações — no mesmo
-espírito de projetos como Organizze e Mobills no Brasil, ou Firefly III e
-Actual Budget no mundo open-source. O ponto interessante técnico do
-projeto até agora não é a feature em si, é o cuidado: o próprio autor
-revisou o próprio código antes de seguir em frente e achou (e corrigiu)
-dois bugs reais de concorrência e segurança que só apareceriam sob carga
-ou ataque, não em uso normal."
+"O mec-fin é um app pessoal de controle financeiro com o MVP completo:
+dá pra cadastrar contas, categorizar receitas e despesas, lançar
+transações (incluindo transferência entre contas e compras parceladas),
+definir um limite de gasto por categoria por mês, cadastrar contas a
+pagar com baixa de pagamento, e ver um dashboard com saldo, previsão e
+gastos por categoria — tudo isso com autenticação segura e isolamento
+completo entre usuários diferentes. O espelho de mercado é o Organizze,
+mas com uma diferença de propósito desde o início: em vez de "uma conta
+compartilhada por credencial" (como o próprio Organizze faz hoje), este
+projeto já modela um espaço financeiro (household) com membros e papéis
+próprios — hoje é transparente (você só tem sua própria conta), mas a
+base pra dividir as finanças com outra pessoa, cada um com seu próprio
+login, já existe sem precisar reescrever nada depois.
+
+O que mais vale destacar tecnicamente não é uma feature isolada, é a
+disciplina que se repete: dado calculável (quanto foi gasto, se uma
+conta está vencida, o dashboard inteiro) nunca é guardado — é sempre
+recalculado na hora, pra nunca ficar dessincronizado. Toda vez que um
+módulo precisa referenciar outro (uma transação apontando pra uma
+conta, um orçamento apontando pra uma categoria), a mesma regra de
+autorização se repete e é testada: se não pertence ao seu espaço
+financeiro, você nunca enxerga, nem por engano. E quando um bug real
+apareceu — duas vezes, em fases diferentes — foi encontrado rodando a
+suíte de testes antes de abrir o pull request, não depois."
 
 
 7. NOTA FINAL
 ----------------
-Este arquivo é um documento VIVO. Ele foi escrito com base no estado do
-projeto em 14/08/2026 (4 commits, só fases 0 e 1 prontas). Assim que
-novas fases forem implementadas (transações, categorias, orçamento,
-open finance, o que for) — ou se alguma decisão aqui documentada mudar
-de rumo — este arquivo precisa ser atualizado para continuar refletindo
-a realidade do projeto. Não é para ser gerado uma vez e esquecido.
+Este arquivo é um documento VIVO. Foi escrito originalmente com base no
+estado do projeto em 14/08/2026 (Fases 0-1 só) e reescrito por completo
+em 19/08/2026, quando o MVP inteiro (Fases 0-7) ficou pronto. Assim que
+as próximas fases pós-MVP forem implementadas (Fase 8 — cartão de
+crédito; Fase 9 — integração bancária; Fase 10 — notificações; Fase 11
+— produção) — ou se alguma decisão aqui documentada mudar de rumo —
+este arquivo precisa ser atualizado de novo para continuar refletindo a
+realidade do projeto. Não é para ser gerado uma vez e esquecido.
