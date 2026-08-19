@@ -3,3 +3,11 @@ spring:
     active: dev
   datasource:
     password: test-only-placeholder
+
+mecfin:
+  rate-limit:
+    # Alto o bastante para nao ser atingido por chamadas de registro de outros testes
+    # na mesma suite (todas compartilham o mesmo IP de loopback). O limite de login
+    # permanece no valor real: o teste dedicado de rate limit usa e-mail unico por
+    # execucao, entao nao ha contaminacao entre testes nesse bucket.
+    register-per-minute: 1000
