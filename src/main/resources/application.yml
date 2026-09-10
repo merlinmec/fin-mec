@@ -21,6 +21,11 @@ server:
     include-message: never
     include-binding-errors: never
   servlet:
+    # Toda a API (e o actuator, que compartilha a porta) fica sob /api, deixando a
+    # raiz livre para o SPA servir seus assets em produção sem colisão de rotas.
+    # Rotas de @RequestMapping e matchers do Spring Security seguem relativos ao
+    # contexto (não levam o prefixo).
+    context-path: /api
     session:
       timeout: 30m
       cookie:
