@@ -4,6 +4,13 @@ spring:
   datasource:
     password: test-only-placeholder
 
+# Este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml nos
+# testes. O context-path precisa ser replicado aqui para que os testes de
+# integração exerçam a API sob /api, igual a produção.
+server:
+  servlet:
+    context-path: /api
+
 mecfin:
   rate-limit:
     # Alto o bastante para nao ser atingido por chamadas de registro de outros testes
