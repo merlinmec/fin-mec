@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens do fin-mec. Paleta neutra (slate) + primary teal.
+ * Tema claro em :root; o tema escuro redefine só os tokens sob .dark.
+ * FE-0 entrega apenas o tema claro na UI; os tokens dark já existem para a
+ * FE-9 (polish) ligar o toggle sem retrabalho.
+ */
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.208 0.021 256);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.208 0.021 256);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.021 256);
+
+  --primary: oklch(0.52 0.077 182);
+  --primary-foreground: oklch(0.984 0.003 248);
+
+  --secondary: oklch(0.968 0.007 248);
+  --secondary-foreground: oklch(0.279 0.031 256);
+
+  --muted: oklch(0.968 0.007 248);
+  --muted-foreground: oklch(0.554 0.028 257);
+
+  --accent: oklch(0.968 0.007 248);
+  --accent-foreground: oklch(0.279 0.031 256);
+
+  --destructive: oklch(0.577 0.245 27);
+  --destructive-foreground: oklch(0.984 0.003 248);
+
+  --border: oklch(0.929 0.013 256);
+  --input: oklch(0.929 0.013 256);
+  --ring: oklch(0.52 0.077 182);
+
+  --success: oklch(0.627 0.17 149);
+  --warning: oklch(0.769 0.16 70);
+}
+
+.dark {
+  --background: oklch(0.208 0.021 256);
+  --foreground: oklch(0.984 0.003 248);
+
+  --card: oklch(0.279 0.031 256);
+  --card-foreground: oklch(0.984 0.003 248);
+  --popover: oklch(0.279 0.031 256);
+  --popover-foreground: oklch(0.984 0.003 248);
+
+  --primary: oklch(0.7 0.09 182);
+  --primary-foreground: oklch(0.208 0.021 256);
+
+  --secondary: oklch(0.337 0.028 258);
+  --secondary-foreground: oklch(0.984 0.003 248);
+
+  --muted: oklch(0.337 0.028 258);
+  --muted-foreground: oklch(0.71 0.02 256);
+
+  --accent: oklch(0.337 0.028 258);
+  --accent-foreground: oklch(0.984 0.003 248);
+
+  --destructive: oklch(0.704 0.191 22);
+  --destructive-foreground: oklch(0.984 0.003 248);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.7 0.09 182);
+
+  --success: oklch(0.696 0.17 150);
+  --warning: oklch(0.828 0.15 76);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+      sans-serif;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
