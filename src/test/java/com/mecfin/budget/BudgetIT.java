@@ -56,7 +56,7 @@ class BudgetIT {
     }
 
     private UUID createAccount(AuthenticatedTestUser user) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -71,7 +71,7 @@ class BudgetIT {
     }
 
     private UUID createCategory(AuthenticatedTestUser user, String name) {
-        return client.post().uri("/categories")
+        return client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -88,7 +88,7 @@ class BudgetIT {
     private void createTransaction(
             AuthenticatedTestUser user, UUID accountId, UUID categoryId, BigDecimal amount,
             TransactionType type, TransactionStatus status, YearMonth competenceMonth) {
-        client.post().uri("/transactions")
+        client.post().uri("/api/transactions")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -102,7 +102,7 @@ class BudgetIT {
 
     private EntityExchangeResult<BudgetResponse> createBudget(
             AuthenticatedTestUser user, UUID categoryId, YearMonth referenceMonth, BigDecimal amount) {
-        return client.post().uri("/budgets")
+        return client.post().uri("/api/budgets")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -132,7 +132,7 @@ class BudgetIT {
 
     @Test
     void createBudgetWithoutSession_returns401() {
-        client.post().uri("/budgets")
+        client.post().uri("/api/budgets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateBudgetRequest(UUID.randomUUID(), YearMonth.now(), BigDecimal.TEN))
                 .exchange()
@@ -143,7 +143,7 @@ class BudgetIT {
     void createBudgetWithInvisibleCategory_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        client.post().uri("/budgets")
+        client.post().uri("/api/budgets")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -159,7 +159,7 @@ class BudgetIT {
         UUID categoryId = createCategory(user, "Lazer");
         createBudget(user, categoryId, YearMonth.of(2026, 8), new BigDecimal("500.00"));
 
-        client.post().uri("/budgets")
+        client.post().uri("/api/budgets")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -180,7 +180,7 @@ class BudgetIT {
         createBudget(other, otherCategory, YearMonth.of(2026, 8), new BigDecimal("999.00"));
 
         List<BudgetResponse> result = owner.authenticate(
-                        client.get().uri("/budgets?referenceMonth=2026-08"))
+                        client.get().uri("/api/budgets?referenceMonth=2026-08"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<BudgetResponse>>() {
@@ -200,7 +200,7 @@ class BudgetIT {
                 .getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/budgets/" + budgetId))
+        intruder.authenticate(client.get().uri("/api/budgets/" + budgetId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -212,7 +212,7 @@ class BudgetIT {
         UUID budgetId = createBudget(user, categoryId, YearMonth.of(2026, 8), new BigDecimal("500.00"))
                 .getResponseBody().id();
 
-        EntityExchangeResult<BudgetResponse> result = client.put().uri("/budgets/" + budgetId)
+        EntityExchangeResult<BudgetResponse> result = client.put().uri("/api/budgets/" + budgetId)
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -234,7 +234,7 @@ class BudgetIT {
                 .getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        client.put().uri("/budgets/" + budgetId)
+        client.put().uri("/api/budgets/" + budgetId)
                 .cookie("JSESSIONID", intruder.sessionCookie())
                 .cookie("XSRF-TOKEN", intruder.csrfToken())
                 .header("X-XSRF-TOKEN", intruder.csrfToken())
@@ -251,11 +251,11 @@ class BudgetIT {
         UUID budgetId = createBudget(user, categoryId, YearMonth.of(2026, 8), new BigDecimal("500.00"))
                 .getResponseBody().id();
 
-        user.authenticate(client.delete().uri("/budgets/" + budgetId))
+        user.authenticate(client.delete().uri("/api/budgets/" + budgetId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        user.authenticate(client.get().uri("/budgets/" + budgetId))
+        user.authenticate(client.get().uri("/api/budgets/" + budgetId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -293,7 +293,7 @@ class BudgetIT {
         createTransaction(other, otherAccountId, otherCategoryId, new BigDecimal("999.00"),
                 TransactionType.EXPENSE, TransactionStatus.POSTED, month);
 
-        BudgetResponse body = owner.authenticate(client.get().uri("/budgets/" + budgetId))
+        BudgetResponse body = owner.authenticate(client.get().uri("/api/budgets/" + budgetId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(BudgetResponse.class)
