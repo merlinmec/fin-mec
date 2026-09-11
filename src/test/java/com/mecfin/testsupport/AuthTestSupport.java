@@ -32,7 +32,7 @@ public final class AuthTestSupport {
     public static AuthenticatedTestUser registerAndLogin(RestTestClient client, String email, String password) {
         String bootstrapCsrfToken = fetchCsrfToken(client);
 
-        EntityExchangeResult<UserResponse> result = client.post().uri("/auth/register")
+        EntityExchangeResult<UserResponse> result = client.post().uri("/api/auth/register")
                 .cookie("XSRF-TOKEN", bootstrapCsrfToken)
                 .header("X-XSRF-TOKEN", bootstrapCsrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -53,12 +53,12 @@ public final class AuthTestSupport {
     }
 
     private static String fetchCsrfToken(RestTestClient client) {
-        return cookieValue(client.get().uri("/csrf").exchange().returnResult(), "XSRF-TOKEN");
+        return cookieValue(client.get().uri("/api/csrf").exchange().returnResult(), "XSRF-TOKEN");
     }
 
     private static String fetchCsrfToken(RestTestClient client, String sessionCookie) {
         return cookieValue(
-                client.get().uri("/csrf").cookie("JSESSIONID", sessionCookie).exchange().returnResult(),
+                client.get().uri("/api/csrf").cookie("JSESSIONID", sessionCookie).exchange().returnResult(),
                 "XSRF-TOKEN");
     }
 
