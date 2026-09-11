@@ -49,7 +49,7 @@ class CategoryIT {
     // AuthTestSupport.authenticate() devolve RequestHeadersSpec<?> (sem contentType()/body()),
     // então requisições com corpo montam cookie+header de sessão manualmente, como o AccountIT já faz.
     private EntityExchangeResult<CategoryResponse> createCategory(AuthenticatedTestUser user, String name, UUID parentId) {
-        return client.post().uri("/categories")
+        return client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -62,7 +62,7 @@ class CategoryIT {
     }
 
     private List<CategoryResponse> listCategories(AuthenticatedTestUser user) {
-        return user.authenticate(client.get().uri("/categories"))
+        return user.authenticate(client.get().uri("/api/categories"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<CategoryResponse>>() {
@@ -86,7 +86,7 @@ class CategoryIT {
 
     @Test
     void createCategoryWithoutSession_returns401() {
-        client.post().uri("/categories")
+        client.post().uri("/api/categories")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateCategoryRequest("Assinaturas", CategoryType.EXPENSE, null, null, null))
                 .exchange()
@@ -113,7 +113,7 @@ class CategoryIT {
         AuthenticatedTestUser user = registerUser();
         UUID moradiaId = UUID.fromString("a3d1f7c2-1a10-4e8a-9c3b-000000000001");
 
-        user.authenticate(client.get().uri("/categories/" + moradiaId))
+        user.authenticate(client.get().uri("/api/categories/" + moradiaId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(CategoryResponse.class)
@@ -127,7 +127,7 @@ class CategoryIT {
         UUID categoryId = createCategory(owner, "Categoria Privada", null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/categories/" + categoryId))
+        intruder.authenticate(client.get().uri("/api/categories/" + categoryId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -136,7 +136,7 @@ class CategoryIT {
     void createCategory_withInvisibleParentId_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        client.post().uri("/categories")
+        client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -161,7 +161,7 @@ class CategoryIT {
         AuthenticatedTestUser owner = registerUser();
         UUID categoryId = createCategory(owner, "Categoria Original", null).getResponseBody().id();
 
-        EntityExchangeResult<CategoryResponse> result = client.put().uri("/categories/" + categoryId)
+        EntityExchangeResult<CategoryResponse> result = client.put().uri("/api/categories/" + categoryId)
                 .cookie("JSESSIONID", owner.sessionCookie())
                 .cookie("XSRF-TOKEN", owner.csrfToken())
                 .header("X-XSRF-TOKEN", owner.csrfToken())
@@ -184,7 +184,7 @@ class CategoryIT {
         UUID categoryId = createCategory(owner, "Categoria Privada", null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        client.put().uri("/categories/" + categoryId)
+        client.put().uri("/api/categories/" + categoryId)
                 .cookie("JSESSIONID", intruder.sessionCookie())
                 .cookie("XSRF-TOKEN", intruder.csrfToken())
                 .header("X-XSRF-TOKEN", intruder.csrfToken())
@@ -199,7 +199,7 @@ class CategoryIT {
         AuthenticatedTestUser user = registerUser();
         UUID moradiaId = UUID.fromString("a3d1f7c2-1a10-4e8a-9c3b-000000000001");
 
-        client.put().uri("/categories/" + moradiaId)
+        client.put().uri("/api/categories/" + moradiaId)
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -214,11 +214,11 @@ class CategoryIT {
         AuthenticatedTestUser owner = registerUser();
         UUID categoryId = createCategory(owner, "Categoria a Excluir", null).getResponseBody().id();
 
-        owner.authenticate(client.delete().uri("/categories/" + categoryId))
+        owner.authenticate(client.delete().uri("/api/categories/" + categoryId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        owner.authenticate(client.get().uri("/categories/" + categoryId))
+        owner.authenticate(client.get().uri("/api/categories/" + categoryId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -228,7 +228,7 @@ class CategoryIT {
         AuthenticatedTestUser user = registerUser();
         UUID moradiaId = UUID.fromString("a3d1f7c2-1a10-4e8a-9c3b-000000000001");
 
-        user.authenticate(client.delete().uri("/categories/" + moradiaId))
+        user.authenticate(client.delete().uri("/api/categories/" + moradiaId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -239,7 +239,7 @@ class CategoryIT {
         UUID categoryId = createCategory(owner, "Categoria Privada", null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.delete().uri("/categories/" + categoryId))
+        intruder.authenticate(client.delete().uri("/api/categories/" + categoryId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
