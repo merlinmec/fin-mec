@@ -58,7 +58,7 @@ class TransactionIT {
     // Mesmo padrao de AccountIT/CategoryIT: authenticate() nao serve para requisicoes com
     // corpo, entao cookie+header sao montados manualmente.
     private UUID createAccount(AuthenticatedTestUser user) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -74,7 +74,7 @@ class TransactionIT {
 
     private EntityExchangeResult<TransactionResponse> createTransaction(
             AuthenticatedTestUser user, UUID accountId, BigDecimal amount, YearMonth competenceMonth) {
-        return client.post().uri("/transactions")
+        return client.post().uri("/api/transactions")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -89,7 +89,7 @@ class TransactionIT {
     }
 
     private PagedResponse<TransactionResponse> listTransactions(AuthenticatedTestUser user, String query) {
-        return user.authenticate(client.get().uri("/transactions" + (query == null ? "" : query)))
+        return user.authenticate(client.get().uri("/api/transactions" + (query == null ? "" : query)))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() {
@@ -114,7 +114,7 @@ class TransactionIT {
 
     @Test
     void createTransactionWithoutSession_returns401() {
-        client.post().uri("/transactions")
+        client.post().uri("/api/transactions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateTransactionRequest(
                         UUID.randomUUID(), null, TransactionType.EXPENSE, BigDecimal.TEN, "Mercado",
@@ -129,7 +129,7 @@ class TransactionIT {
         UUID accountId = createAccount(owner);
         AuthenticatedTestUser intruder = registerUser();
 
-        client.post().uri("/transactions")
+        client.post().uri("/api/transactions")
                 .cookie("JSESSIONID", intruder.sessionCookie())
                 .cookie("XSRF-TOKEN", intruder.csrfToken())
                 .header("X-XSRF-TOKEN", intruder.csrfToken())
@@ -146,7 +146,7 @@ class TransactionIT {
         AuthenticatedTestUser user = registerUser();
         UUID accountId = createAccount(user);
 
-        client.post().uri("/transactions")
+        client.post().uri("/api/transactions")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -164,7 +164,7 @@ class TransactionIT {
         UUID sourceAccountId = createAccount(user);
         UUID destinationAccountId = createAccount(user);
 
-        EntityExchangeResult<List<TransactionResponse>> result = client.post().uri("/transactions/transfers")
+        EntityExchangeResult<List<TransactionResponse>> result = client.post().uri("/api/transactions/transfers")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -195,7 +195,7 @@ class TransactionIT {
         AuthenticatedTestUser user = registerUser();
         UUID sourceAccountId = createAccount(user);
         UUID destinationAccountId = createAccount(user);
-        List<TransactionResponse> legs = client.post().uri("/transactions/transfers")
+        List<TransactionResponse> legs = client.post().uri("/api/transactions/transfers")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -212,17 +212,17 @@ class TransactionIT {
 
         // Confirma que transferPairId foi mesmo persistido (não só devolvido na resposta
         // imediata do POST, que reflete só o objeto em memória) antes de cancelar.
-        TransactionResponse outBefore = user.authenticate(client.get().uri("/transactions/" + legs.get(0).id()))
+        TransactionResponse outBefore = user.authenticate(client.get().uri("/api/transactions/" + legs.get(0).id()))
                 .exchange().expectStatus().isOk().expectBody(TransactionResponse.class).returnResult().getResponseBody();
         assertThat(outBefore.transferPairId()).isEqualTo(legs.get(1).id());
 
-        user.authenticate(client.delete().uri("/transactions/" + legs.get(0).id()))
+        user.authenticate(client.delete().uri("/api/transactions/" + legs.get(0).id()))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        TransactionResponse outAfter = user.authenticate(client.get().uri("/transactions/" + legs.get(0).id()))
+        TransactionResponse outAfter = user.authenticate(client.get().uri("/api/transactions/" + legs.get(0).id()))
                 .exchange().expectStatus().isOk().expectBody(TransactionResponse.class).returnResult().getResponseBody();
-        TransactionResponse inAfter = user.authenticate(client.get().uri("/transactions/" + legs.get(1).id()))
+        TransactionResponse inAfter = user.authenticate(client.get().uri("/api/transactions/" + legs.get(1).id()))
                 .exchange().expectStatus().isOk().expectBody(TransactionResponse.class).returnResult().getResponseBody();
         assertThat(outAfter.status()).isEqualTo(TransactionStatus.CANCELED);
         assertThat(inAfter.status()).isEqualTo(TransactionStatus.CANCELED);
@@ -233,7 +233,7 @@ class TransactionIT {
         AuthenticatedTestUser user = registerUser();
         UUID sourceAccountId = createAccount(user);
         UUID destinationAccountId = createAccount(user);
-        List<TransactionResponse> legs = client.post().uri("/transactions/transfers")
+        List<TransactionResponse> legs = client.post().uri("/api/transactions/transfers")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -248,7 +248,7 @@ class TransactionIT {
                 .returnResult()
                 .getResponseBody();
 
-        client.put().uri("/transactions/" + legs.get(0).id())
+        client.put().uri("/api/transactions/" + legs.get(0).id())
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -265,7 +265,7 @@ class TransactionIT {
         AuthenticatedTestUser user = registerUser();
         UUID accountId = createAccount(user);
 
-        EntityExchangeResult<List<TransactionResponse>> result = client.post().uri("/transactions/installments")
+        EntityExchangeResult<List<TransactionResponse>> result = client.post().uri("/api/transactions/installments")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -341,7 +341,7 @@ class TransactionIT {
                 .getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/transactions/" + transactionId))
+        intruder.authenticate(client.get().uri("/api/transactions/" + transactionId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -353,7 +353,7 @@ class TransactionIT {
         UUID transactionId = createTransaction(user, accountId, BigDecimal.TEN, YearMonth.now())
                 .getResponseBody().id();
 
-        EntityExchangeResult<TransactionResponse> result = client.put().uri("/transactions/" + transactionId)
+        EntityExchangeResult<TransactionResponse> result = client.put().uri("/api/transactions/" + transactionId)
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -377,11 +377,11 @@ class TransactionIT {
         UUID transactionId = createTransaction(user, accountId, BigDecimal.TEN, YearMonth.now())
                 .getResponseBody().id();
 
-        user.authenticate(client.delete().uri("/transactions/" + transactionId))
+        user.authenticate(client.delete().uri("/api/transactions/" + transactionId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        TransactionResponse body = user.authenticate(client.get().uri("/transactions/" + transactionId))
+        TransactionResponse body = user.authenticate(client.get().uri("/api/transactions/" + transactionId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(TransactionResponse.class)

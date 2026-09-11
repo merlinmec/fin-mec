@@ -5,11 +5,17 @@ spring:
     password: test-only-placeholder
 
 # Este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml nos
-# testes. O context-path precisa ser replicado aqui para que os testes de
-# integração exerçam a API sob /api, igual a produção.
-server:
-  servlet:
-    context-path: /api
+# testes. O prefixo /api dos @RestController vem do bean WebConfig (@Configuration
+# comum, carregado pelo Spring context dos testes igual qualquer outro bean) — não
+# precisa replicar nada aqui pra esse fim. Mas o base-path do actuator é uma
+# PROPRIEDADE (a autoconfiguração do Actuator lê de application.yml, não de um
+# bean), então essa sim precisa ser replicada — descoberto só na CI (clean
+# checkout, sem target/ residual) depois desta config ter passado localmente por
+# engano com classes de teste desatualizadas em cache.
+management:
+  endpoints:
+    web:
+      base-path: /api/actuator
 
 mecfin:
   rate-limit:

@@ -46,7 +46,7 @@ class NotificationIT {
     }
 
     private UUID createOverdueBill(AuthenticatedTestUser user) {
-        return client.post().uri("/bills")
+        return client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -61,7 +61,7 @@ class NotificationIT {
     }
 
     private List<NotificationResponse> sync(AuthenticatedTestUser user) {
-        return client.post().uri("/notifications/sync")
+        return client.post().uri("/api/notifications/sync")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -75,7 +75,7 @@ class NotificationIT {
 
     @Test
     void syncWithoutSession_returns401() {
-        client.post().uri("/notifications/sync")
+        client.post().uri("/api/notifications/sync")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -112,7 +112,7 @@ class NotificationIT {
         createOverdueBill(other);
         sync(other);
 
-        List<NotificationResponse> result = owner.authenticate(client.get().uri("/notifications"))
+        List<NotificationResponse> result = owner.authenticate(client.get().uri("/api/notifications"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<NotificationResponse>>() {
@@ -129,7 +129,7 @@ class NotificationIT {
         createOverdueBill(user);
         UUID notificationId = sync(user).get(0).id();
 
-        NotificationResponse marked = client.post().uri("/notifications/" + notificationId + "/read")
+        NotificationResponse marked = client.post().uri("/api/notifications/" + notificationId + "/read")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -140,7 +140,7 @@ class NotificationIT {
                 .getResponseBody();
         assertThat(marked.read()).isTrue();
 
-        List<NotificationResponse> unread = user.authenticate(client.get().uri("/notifications?read=false"))
+        List<NotificationResponse> unread = user.authenticate(client.get().uri("/api/notifications?read=false"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<NotificationResponse>>() {
@@ -157,7 +157,7 @@ class NotificationIT {
         UUID notificationId = sync(owner).get(0).id();
         AuthenticatedTestUser intruder = registerUser();
 
-        client.post().uri("/notifications/" + notificationId + "/read")
+        client.post().uri("/api/notifications/" + notificationId + "/read")
                 .cookie("JSESSIONID", intruder.sessionCookie())
                 .cookie("XSRF-TOKEN", intruder.csrfToken())
                 .header("X-XSRF-TOKEN", intruder.csrfToken())
