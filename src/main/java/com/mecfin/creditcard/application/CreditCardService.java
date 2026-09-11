@@ -151,7 +151,7 @@ public class CreditCardService {
     @Transactional
     public CreditCardInvoiceView payInvoice(UUID id, UUID paymentAccountId, LocalDate paymentDate, BigDecimal paidAmount) {
         CreditCardInvoice invoice = getOwnedInvoiceOrThrow(id);
-        requireOpen(invoice);
+        requireNotPaid(invoice);
         CreditCard card = creditCardRepository.findById(invoice.getCreditCardId())
                 .orElseThrow(() -> new CreditCardNotFoundException(invoice.getCreditCardId()));
 
@@ -211,10 +211,25 @@ public class CreditCardService {
                 .orElseThrow(() -> new CreditCardInvoiceNotFoundException(id));
     }
 
+    // Estrito: corrigir cobranca (registrar ou apagar) so faz sentido enquanto a fatura ainda
+    // esta aberta de verdade (status EFETIVO OPEN) - uma vez fechada (CLOSED, calculado por
+    // closingDate), o periodo da fatura acabou e editar as cobrancas dela deixaria o total
+    // incoerente com o que ja devia ter sido cobrado.
     private void requireOpen(CreditCardInvoice invoice) {
         CreditCardInvoiceView view = new CreditCardInvoiceView(invoice, List.of());
         if (view.effectiveStatus() != CreditCardInvoiceStatus.OPEN) {
             throw new CreditCardInvoiceNotOpenException(invoice.getId(), view.effectiveStatus());
+        }
+    }
+
+    // Permissivo (diferente de requireOpen acima, de proposito): pagar e a acao esperada
+    // exatamente quando a fatura fecha (status efetivo CLOSED) - o fluxo real e "fecha, depois
+    // paga", nao o contrario. So bloqueia quando o status BRUTO persistido ja e PAID (isOpen()
+    // usa o status bruto, nao o efetivo - mesmo padrao de Bill.isOpen()/BillService.requireOpen,
+    // onde pagar uma Bill OVERDUE, ja "fechada" por analogia, tambem e permitido).
+    private void requireNotPaid(CreditCardInvoice invoice) {
+        if (!invoice.isOpen()) {
+            throw new CreditCardInvoiceNotOpenException(invoice.getId(), invoice.getStatus());
         }
     }
 
