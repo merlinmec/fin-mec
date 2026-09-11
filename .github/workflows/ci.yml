@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,3 +20,45 @@ jobs:
 
       - name: Build and test
         run: mvn -B verify
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect frontend changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            web:
+              - 'web/**'
+              - '.github/workflows/ci.yml'
+
+      - name: Set up Node 22
+        if: steps.changes.outputs.web == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        if: steps.changes.outputs.web == 'true'
+        working-directory: web
+        run: npm ci
+
+      - name: Lint
+        if: steps.changes.outputs.web == 'true'
+        working-directory: web
+        run: npm run lint
+
+      - name: Typecheck
+        if: steps.changes.outputs.web == 'true'
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Build
+        if: steps.changes.outputs.web == 'true'
+        working-directory: web
+        run: npm run build
