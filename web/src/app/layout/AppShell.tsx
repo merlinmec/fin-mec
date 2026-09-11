@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
  */
 const NAV_SECTIONS = [
   { label: "Dashboard", to: "/", ready: false },
-  { label: "Contas", to: "/contas", ready: false },
+  { label: "Contas", to: "/contas", ready: true },
   { label: "Lançamentos", to: "/lancamentos", ready: false },
   { label: "Orçamento", to: "/orcamento", ready: false },
   { label: "Contas a pagar", to: "/contas-a-pagar", ready: false },
@@ -35,7 +35,7 @@ export function AppShell() {
               <NavLink
                 key={section.to}
                 to={section.to}
-                end={section.to === "/"}
+                end={(section.to as string) === "/"}
                 className={({ isActive }) =>
                   cn(
                     "rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground",
