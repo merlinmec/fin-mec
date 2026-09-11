@@ -9,6 +9,9 @@ import { CategoriesPage } from "@/routes/categories/CategoriesPage";
 import { TransactionsPage } from "@/routes/transactions/TransactionsPage";
 import { BillsPage } from "@/routes/bills/BillsPage";
 import { BudgetsPage } from "@/routes/budgets/BudgetsPage";
+import { CreditCardsPage } from "@/routes/creditcards/CreditCardsPage";
+import { CreditCardDetailPage } from "@/routes/creditcards/CreditCardDetailPage";
+import { InvoiceDetailPage } from "@/routes/creditcards/InvoiceDetailPage";
 
 export const router = createBrowserRouter([
   {
@@ -31,6 +34,9 @@ export const router = createBrowserRouter([
           { path: "lancamentos", element: <TransactionsPage /> },
           { path: "contas-a-pagar", element: <BillsPage /> },
           { path: "orcamento", element: <BudgetsPage /> },
+          { path: "cartoes", element: <CreditCardsPage /> },
+          { path: "cartoes/:cardId", element: <CreditCardDetailPage /> },
+          { path: "cartoes/:cardId/faturas/:invoiceId", element: <InvoiceDetailPage /> },
         ],
       },
     ],
