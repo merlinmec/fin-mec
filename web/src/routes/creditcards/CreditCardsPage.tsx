@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
+import { CreditCard as CreditCardIcon } from "lucide-react";
 import type { CreditCard } from "@/api/creditCards";
 import { useAccounts } from "@/hooks/useAccounts";
+import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { useCreditCards } from "./hooks";
 import { CreditCardRow } from "./CreditCardRow";
@@ -26,12 +29,12 @@ export function CreditCardsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold tracking-tight">Cartões</h1>
         <Button onClick={openCreate}>Novo cartão</Button>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando cartões…</p>}
+      {isPending && <TableSkeleton columns={4} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -40,9 +43,11 @@ export function CreditCardsPage() {
       )}
 
       {cards && cards.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhum cartão ainda. Crie o primeiro pra começar a lançar as compras.
-        </div>
+        <EmptyState
+          icon={CreditCardIcon}
+          title="Nenhum cartão ainda"
+          description="Crie o primeiro pra começar a lançar as compras."
+        />
       )}
 
       {cards && cards.length > 0 && (

@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Receipt } from "lucide-react";
 import type { Transaction, TransactionType } from "@/api/transactions";
 import { TRANSACTION_TYPE_LABELS } from "@/api/transactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { AccountSelect } from "@/components/AccountSelect";
 import { CategorySelect } from "@/components/CategorySelect";
+import { EmptyState } from "@/components/EmptyState";
 import { MonthSelector } from "@/components/MonthSelector";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { currentYearMonth, formatYearMonth } from "@/lib/dates";
@@ -126,7 +129,7 @@ export function TransactionsPage() {
         </div>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando lançamentos…</p>}
+      {isPending && <TableSkeleton columns={5} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -135,9 +138,7 @@ export function TransactionsPage() {
       )}
 
       {data && data.content.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhum lançamento em {formatYearMonth(month)} com esses filtros.
-        </div>
+        <EmptyState icon={Receipt} title="Nenhum lançamento" description={`Nada em ${formatYearMonth(month)} com esses filtros.`} />
       )}
 
       {data && data.content.length > 0 && (
@@ -168,7 +169,7 @@ export function TransactionsPage() {
             </table>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>{data.totalElements} lançamento(s)</span>
             <div className="flex items-center gap-2">
               <Button
