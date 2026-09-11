@@ -1,6 +1,9 @@
 # dependencies
 node_modules
 
+# node/npm baixados pelo frontend-maven-plugin (mvn -Pfrontend, ver pom.xml)
+node
+
 # build output
 dist
 dist-ssr

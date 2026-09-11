@@ -1,6 +1,9 @@
 ### Maven ###
 target/
 
+### Frontend build output (gerado por mvn -Pfrontend, ver pom.xml) ###
+/src/main/resources/static/
+
 ### Secrets ###
 .env
 .env.*
