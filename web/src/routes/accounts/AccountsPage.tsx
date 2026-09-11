@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Wallet } from "lucide-react";
 import type { Account } from "@/api/accounts";
 import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { useAccounts } from "./hooks";
 import { AccountRow } from "./AccountRow";
 import { AccountFormDialog } from "./AccountFormDialog";
@@ -27,7 +30,7 @@ export function AccountsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Contas</h1>
           <p className="text-sm text-muted-foreground">
@@ -37,7 +40,7 @@ export function AccountsPage() {
         <Button onClick={openCreate}>Nova conta</Button>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando contas…</p>}
+      {isPending && <TableSkeleton columns={4} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -46,9 +49,11 @@ export function AccountsPage() {
       )}
 
       {accounts && accounts.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhuma conta ainda. Crie a primeira pra começar a organizar suas finanças.
-        </div>
+        <EmptyState
+          icon={Wallet}
+          title="Nenhuma conta ainda"
+          description="Crie a primeira pra começar a organizar suas finanças."
+        />
       )}
 
       {accounts && accounts.length > 0 && (

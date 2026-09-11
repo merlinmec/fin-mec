@@ -155,4 +155,62 @@
         </plugins>
     </build>
 
+    <!-- Perfil opt-in (mvn -Pfrontend verify/package) que builda o SPA (web/) e
+         copia o resultado pra src/main/resources/static antes do empacotamento,
+         gerando um jar unico que serve API + SPA (ver WebConfig). Fora do build
+         padrao de proposito: mvn verify sozinho continua rapido e nao exige
+         node/npm instalados pra quem so mexe no backend - so quem for gerar o
+         artefato de producao (ou testar isso localmente) precisa do node. -->
+    <profiles>
+        <profile>
+            <id>frontend</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>1.15.1</version>
+                        <configuration>
+                            <workingDirectory>web</workingDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>install-node-and-npm</id>
+                                <goals>
+                                    <goal>install-node-and-npm</goal>
+                                </goals>
+                                <configuration>
+                                    <nodeVersion>v22.11.0</nodeVersion>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>npm-ci</id>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>ci</arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <!-- generate-resources: roda antes do maven-resources-plugin copiar
+                                     src/main/resources pro classpath, entao o dist/ que o vite acabou
+                                     de escrever em src/main/resources/static (ver web/vite.config.ts)
+                                     ja esta no lugar certo a tempo de entrar no jar. -->
+                                <id>npm-build</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>run build</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
