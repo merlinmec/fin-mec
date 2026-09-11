@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
+import { FileText } from "lucide-react";
 import type { Bill, BillStatus } from "@/api/bills";
 import { BILL_STATUS_LABELS } from "@/api/bills";
 import { useCategories } from "@/hooks/useCategories";
+import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useBills } from "./hooks";
@@ -52,7 +55,7 @@ export function BillsPage() {
         </div>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando contas a pagar…</p>}
+      {isPending && <TableSkeleton columns={4} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -61,9 +64,7 @@ export function BillsPage() {
       )}
 
       {bills && bills.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhuma conta a pagar por aqui.
-        </div>
+        <EmptyState icon={FileText} title="Nenhuma conta a pagar" description="Cadastre a primeira pra acompanhar os vencimentos." />
       )}
 
       {bills && bills.length > 0 && (

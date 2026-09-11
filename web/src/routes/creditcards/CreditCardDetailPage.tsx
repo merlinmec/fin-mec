@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import type { CreditCardInvoiceStatus } from "@/api/creditCards";
+import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatYearMonth } from "@/lib/dates";
@@ -55,7 +57,7 @@ export function CreditCardDetailPage() {
         <Button onClick={() => setChargeOpen(true)}>Lançar compra</Button>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando faturas…</p>}
+      {isPending && <TableSkeleton columns={5} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -64,9 +66,7 @@ export function CreditCardDetailPage() {
       )}
 
       {invoices && invoices.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhuma fatura ainda — lance a primeira compra pra gerar uma.
-        </div>
+        <EmptyState icon={FileText} title="Nenhuma fatura ainda" description="Lance a primeira compra pra gerar uma." />
       )}
 
       {invoices && invoices.length > 0 && (
