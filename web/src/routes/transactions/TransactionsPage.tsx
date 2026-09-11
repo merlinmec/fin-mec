@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { Transaction, TransactionType } from "@/api/transactions";
 import { TRANSACTION_TYPE_LABELS } from "@/api/transactions";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -18,9 +19,13 @@ import { InstallmentFormDialog } from "./InstallmentFormDialog";
 const PAGE_SIZE = 20;
 
 export function TransactionsPage() {
+  // Seed unico a partir da URL (drill-down do Dashboard: "categoria" -> aqui filtrado) — nao
+  // sincroniza de volta pra URL, e so um ponto de entrada, os filtros continuam locais depois.
+  const [searchParams] = useSearchParams();
+
   const [month, setMonth] = useState(currentYearMonth());
   const [accountId, setAccountId] = useState<string | undefined>(undefined);
-  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
+  const [categoryId, setCategoryId] = useState<string | undefined>(searchParams.get("categoryId") ?? undefined);
   const [type, setType] = useState<TransactionType | "">("");
   const [page, setPage] = useState(0);
 

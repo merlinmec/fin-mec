@@ -3,7 +3,7 @@ import { AppShell } from "./layout/AppShell";
 import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { LoginPage } from "@/routes/auth/LoginPage";
 import { RegisterPage } from "@/routes/auth/RegisterPage";
-import { DashboardPlaceholder } from "@/routes/DashboardPlaceholder";
+import { DashboardPage } from "@/routes/dashboard/DashboardPage";
 import { AccountsPage } from "@/routes/accounts/AccountsPage";
 import { CategoriesPage } from "@/routes/categories/CategoriesPage";
 import { TransactionsPage } from "@/routes/transactions/TransactionsPage";
@@ -28,7 +28,7 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { index: true, element: <DashboardPlaceholder /> },
+          { index: true, element: <DashboardPage /> },
           { path: "contas", element: <AccountsPage /> },
           { path: "categorias", element: <CategoriesPage /> },
           { path: "lancamentos", element: <TransactionsPage /> },
