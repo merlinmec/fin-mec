@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./layout/ProtectedRoute";
 import { LoginPage } from "@/routes/auth/LoginPage";
 import { RegisterPage } from "@/routes/auth/RegisterPage";
 import { DashboardPlaceholder } from "@/routes/DashboardPlaceholder";
+import { AccountsPage } from "@/routes/accounts/AccountsPage";
 
 export const router = createBrowserRouter([
   {
@@ -19,7 +20,10 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <AppShell />,
-        children: [{ index: true, element: <DashboardPlaceholder /> }],
+        children: [
+          { index: true, element: <DashboardPlaceholder /> },
+          { path: "contas", element: <AccountsPage /> },
+        ],
       },
     ],
   },
