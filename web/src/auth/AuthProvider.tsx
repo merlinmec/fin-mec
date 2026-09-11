@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchCurrentUser, type CurrentUser } from "@/api/auth";
+import {
+  fetchCurrentUser,
+  loginUser,
+  logoutUser,
+  registerUser,
+  type CurrentUser,
+  type LoginPayload,
+  type RegisterPayload,
+} from "@/api/auth";
 import { bootstrapCsrf } from "@/api/csrf";
 import { ApiError, setUnauthorizedHandler } from "@/api/client";
 import { AuthContext, type AuthStatus } from "./auth-context";
@@ -43,7 +51,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  // O Spring renova o token CSRF a cada mudança de autenticação
+  // (CsrfAuthenticationStrategy), então login/registro/logout precisam
+  // re-semear o cliente depois da chamada — não só no boot.
+
+  const login = useCallback(async (payload: LoginPayload) => {
+    const me = await loginUser(payload);
+    await bootstrapCsrf();
+    setUser(me);
+    setStatus("authenticated");
+  }, []);
+
+  const register = useCallback(async (payload: RegisterPayload) => {
+    const me = await registerUser(payload);
+    await bootstrapCsrf();
+    setUser(me);
+    setStatus("authenticated");
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } finally {
+      await bootstrapCsrf();
+      setUser(null);
+      setStatus("anonymous");
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ status, user, refresh }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ status, user, refresh, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
