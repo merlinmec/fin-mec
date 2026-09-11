@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -24,5 +25,14 @@ export default defineConfig({
         changeOrigin: false,
       },
     },
+  },
+  // A referencia de tipos no topo do arquivo e o que faz `test` abaixo tipar
+  // certo (senao o defineConfig do vite puro nao reconhece a chave) — um so
+  // arquivo de config em vez de vite.config.ts + vitest.config.ts separados.
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+    css: true,
   },
 });

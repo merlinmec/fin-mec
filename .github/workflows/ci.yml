@@ -58,6 +58,11 @@ jobs:
         working-directory: web
         run: npm run typecheck
 
+      - name: Test
+        if: steps.changes.outputs.web == 'true'
+        working-directory: web
+        run: npm test
+
       - name: Build
         if: steps.changes.outputs.web == 'true'
         working-directory: web
