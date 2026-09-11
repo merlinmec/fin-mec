@@ -6,6 +6,7 @@ import { RegisterPage } from "@/routes/auth/RegisterPage";
 import { DashboardPlaceholder } from "@/routes/DashboardPlaceholder";
 import { AccountsPage } from "@/routes/accounts/AccountsPage";
 import { CategoriesPage } from "@/routes/categories/CategoriesPage";
+import { TransactionsPage } from "@/routes/transactions/TransactionsPage";
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPlaceholder /> },
           { path: "contas", element: <AccountsPage /> },
           { path: "categorias", element: <CategoriesPage /> },
+          { path: "lancamentos", element: <TransactionsPage /> },
         ],
       },
     ],
