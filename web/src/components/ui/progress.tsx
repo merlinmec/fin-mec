@@ -5,6 +5,8 @@ interface ProgressProps {
   value: number;
   className?: string;
   indicatorClassName?: string;
+  /** Cor arbitraria (ex.: a cor propria de uma categoria) — quando o indicador nao e uma das variantes fixas do Tailwind. */
+  indicatorStyle?: React.CSSProperties;
 }
 
 /**
@@ -12,7 +14,7 @@ interface ProgressProps {
  * assincrono) nao precisa da primitiva completa; role="progressbar" manual
  * cobre a acessibilidade que importa aqui.
  */
-export function Progress({ value, className, indicatorClassName }: ProgressProps) {
+export function Progress({ value, className, indicatorClassName, indicatorStyle }: ProgressProps) {
   const clamped = Math.min(100, Math.max(0, value));
   return (
     <div
@@ -24,7 +26,7 @@ export function Progress({ value, className, indicatorClassName }: ProgressProps
     >
       <div
         className={cn("h-full rounded-full transition-[width]", indicatorClassName)}
-        style={{ width: `${clamped}%` }}
+        style={{ width: `${clamped}%`, ...indicatorStyle }}
       />
     </div>
   );
