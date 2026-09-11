@@ -44,3 +44,12 @@ export function shiftYearMonth(yearMonth: string, deltaMonths: number): string {
 export function yearMonthOf(isoDate: string): string {
   return isoDate.slice(0, 7);
 }
+
+/** Dias entre hoje e a data (negativo = no passado). Usado pro destaque de "vence em breve" em Bill. */
+export function daysUntil(isoDate: string): number {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const target = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
