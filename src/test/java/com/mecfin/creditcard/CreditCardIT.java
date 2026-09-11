@@ -32,6 +32,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -49,6 +50,9 @@ class CreditCardIT {
 
     @Autowired
     private RestTestClient client;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private static String uniqueEmail() {
         return "user-" + UUID.randomUUID() + "@example.com";
@@ -272,6 +276,26 @@ class CreditCardIT {
     }
 
     @Test
+    void registerChargeForAlreadyClosedPeriod_returns409() {
+        AuthenticatedTestUser user = registerUser();
+        UUID cardId = createCard(user, null).getResponseBody().id();
+
+        // Uma compra com data antiga o bastante resolve pra uma fatura cujo closingDate ja
+        // passou (status efetivo CLOSED) - nao pode mais receber cobranca, mesmo sendo a
+        // primeira (o periodo em si ja fechou, independente de ja ter cobranca ou nao).
+        client.post().uri("/credit-cards/" + cardId + "/charges")
+                .cookie("JSESSIONID", user.sessionCookie())
+                .cookie("XSRF-TOKEN", user.csrfToken())
+                .header("X-XSRF-TOKEN", user.csrfToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CreateCreditCardChargeRequest(
+                        "Compra atrasada", BigDecimal.TEN, TransactionType.EXPENSE, null,
+                        LocalDate.now().minusMonths(2), null))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
     void registerCharge_singleChargeCreatesOneInvoiceWithDerivedTotal() {
         AuthenticatedTestUser user = registerUser();
         UUID cardId = createCard(user, null).getResponseBody().id();
@@ -400,6 +424,42 @@ class CreditCardIT {
                 .body(new PayCreditCardInvoiceRequest(null, LocalDate.now(), null))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    // Regressao do fix: pagar precisa funcionar com a fatura ja fechada (CLOSED, efetivo) -
+    // esse e o fluxo real (fecha, depois paga). Antes do fix, payInvoice usava o mesmo guard
+    // estrito de registerCharge/deleteCharge (so status efetivo OPEN) e isso nunca era possivel.
+    //
+    // Nao da pra montar esse cenario so com a API: uma cobranca so e aceita se a fatura
+    // resolvida ainda estiver OPEN "agora" (ver registerChargeForAlreadyClosedPeriod_returns409
+    // acima), entao uma fatura recem-criada nunca nasce ja fechada. O fechamento so acontece
+    // com a passagem real do tempo, que o teste simula via UPDATE direto no banco (closing_date
+    // e updatable=false no mapeamento JPA - salvar via entidade seria descartado em silencio,
+    // mesmo gotcha ja documentado na memoria do projeto pra Transaction na Fase 5).
+    @Test
+    void payInvoice_worksAfterInvoiceCloses() {
+        AuthenticatedTestUser user = registerUser();
+        UUID accountId = createAccount(user);
+        UUID cardId = createCard(user, accountId).getResponseBody().id();
+        registerCharge(user, cardId, null, LocalDate.now(), null);
+        UUID invoiceId = firstInvoiceId(user, cardId);
+
+        jdbcTemplate.update(
+                "UPDATE credit_card_invoices SET closing_date = ? WHERE id = ?",
+                java.sql.Date.valueOf(LocalDate.now().minusDays(1)), invoiceId);
+
+        CreditCardInvoiceResponse before = user.authenticate(client.get().uri("/credit-card-invoices/" + invoiceId))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(CreditCardInvoiceResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(before.status()).isEqualTo(CreditCardInvoiceStatus.CLOSED);
+
+        CreditCardInvoiceResponse paid = payInvoice(user, invoiceId).getResponseBody();
+
+        assertThat(paid.status()).isEqualTo(CreditCardInvoiceStatus.PAID);
+        assertThat(paid.paidTransactionId()).isNotNull();
     }
 
     @Test
