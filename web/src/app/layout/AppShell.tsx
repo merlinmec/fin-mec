@@ -1,6 +1,7 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/auth/auth-context";
+import { Button } from "@/components/ui/button";
 
 /**
  * Casca autenticada: sidebar de navegacao + topbar. As secoes ainda nao tem
@@ -16,7 +17,13 @@ const NAV_SECTIONS = [
 ] as const;
 
 export function AppShell() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await logout();
+    void navigate("/login", { replace: true });
+  }
 
   return (
     <div className="grid min-h-dvh grid-cols-[15rem_1fr]">
@@ -52,8 +59,11 @@ export function AppShell() {
       </aside>
 
       <div className="flex flex-col">
-        <header className="flex h-14 items-center justify-end border-b border-border px-6 text-sm text-muted-foreground">
-          {user?.email}
+        <header className="flex h-14 items-center justify-end gap-4 border-b border-border px-6 text-sm text-muted-foreground">
+          <span>{user?.email}</span>
+          <Button variant="outline" size="sm" onClick={() => void handleLogout()}>
+            Sair
+          </Button>
         </header>
         <main className="flex-1 p-6">
           <Outlet />
