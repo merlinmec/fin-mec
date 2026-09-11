@@ -14,7 +14,7 @@ const NAV_SECTIONS = [
   { label: "Lançamentos", to: "/lancamentos", ready: true },
   { label: "Orçamento", to: "/orcamento", ready: true },
   { label: "Contas a pagar", to: "/contas-a-pagar", ready: true },
-  { label: "Cartões", to: "/cartoes", ready: false },
+  { label: "Cartões", to: "/cartoes", ready: true },
 ] as const;
 
 export function AppShell() {
