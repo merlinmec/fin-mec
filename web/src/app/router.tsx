@@ -7,6 +7,7 @@ import { DashboardPlaceholder } from "@/routes/DashboardPlaceholder";
 import { AccountsPage } from "@/routes/accounts/AccountsPage";
 import { CategoriesPage } from "@/routes/categories/CategoriesPage";
 import { TransactionsPage } from "@/routes/transactions/TransactionsPage";
+import { BillsPage } from "@/routes/bills/BillsPage";
 import { BudgetsPage } from "@/routes/budgets/BudgetsPage";
 
 export const router = createBrowserRouter([
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
           { path: "contas", element: <AccountsPage /> },
           { path: "categorias", element: <CategoriesPage /> },
           { path: "lancamentos", element: <TransactionsPage /> },
+          { path: "contas-a-pagar", element: <BillsPage /> },
           { path: "orcamento", element: <BudgetsPage /> },
         ],
       },

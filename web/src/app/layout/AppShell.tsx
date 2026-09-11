@@ -13,7 +13,7 @@ const NAV_SECTIONS = [
   { label: "Categorias", to: "/categorias", ready: true },
   { label: "Lançamentos", to: "/lancamentos", ready: true },
   { label: "Orçamento", to: "/orcamento", ready: true },
-  { label: "Contas a pagar", to: "/contas-a-pagar", ready: false },
+  { label: "Contas a pagar", to: "/contas-a-pagar", ready: true },
   { label: "Cartões", to: "/cartoes", ready: false },
 ] as const;
 
