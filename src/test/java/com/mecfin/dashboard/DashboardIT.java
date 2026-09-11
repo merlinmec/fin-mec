@@ -53,7 +53,7 @@ class DashboardIT {
     }
 
     private UUID createAccount(AuthenticatedTestUser user, BigDecimal initialBalance) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -68,7 +68,7 @@ class DashboardIT {
     }
 
     private UUID createCategory(AuthenticatedTestUser user) {
-        return client.post().uri("/categories")
+        return client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -85,7 +85,7 @@ class DashboardIT {
     private void createTransaction(
             AuthenticatedTestUser user, UUID accountId, UUID categoryId, TransactionType type, BigDecimal amount,
             TransactionStatus status, LocalDate transactionDate, YearMonth competenceMonth) {
-        client.post().uri("/transactions")
+        client.post().uri("/api/transactions")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -98,7 +98,7 @@ class DashboardIT {
 
     @Test
     void dashboardWithoutSession_returns401() {
-        client.get().uri("/dashboard")
+        client.get().uri("/api/dashboard")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -107,7 +107,7 @@ class DashboardIT {
     void dashboardForHouseholdWithoutAnyDataReturnsZeroedSummary() {
         AuthenticatedTestUser user = registerUser();
 
-        DashboardResponse body = user.authenticate(client.get().uri("/dashboard?month=2026-08"))
+        DashboardResponse body = user.authenticate(client.get().uri("/api/dashboard?month=2026-08"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DashboardResponse.class)
@@ -144,7 +144,7 @@ class DashboardIT {
         createTransaction(user, accountId, categoryId, TransactionType.EXPENSE, new BigDecimal("999.00"),
                 TransactionStatus.PENDING, LocalDate.of(2026, 8, 12), month);
 
-        client.post().uri("/bills")
+        client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -153,7 +153,7 @@ class DashboardIT {
                 .exchange()
                 .expectStatus().isCreated();
 
-        client.post().uri("/budgets")
+        client.post().uri("/api/budgets")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -169,7 +169,7 @@ class DashboardIT {
         createTransaction(other, otherAccountId, otherCategoryId, TransactionType.INCOME, new BigDecimal("9999.00"),
                 TransactionStatus.POSTED, LocalDate.of(2026, 8, 1), month);
 
-        DashboardResponse body = user.authenticate(client.get().uri("/dashboard?month=2026-08"))
+        DashboardResponse body = user.authenticate(client.get().uri("/api/dashboard?month=2026-08"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DashboardResponse.class)
@@ -206,7 +206,7 @@ class DashboardIT {
     void dashboardWithoutMonthParameterDefaultsToCurrentMonth() {
         AuthenticatedTestUser user = registerUser();
 
-        DashboardResponse body = user.authenticate(client.get().uri("/dashboard"))
+        DashboardResponse body = user.authenticate(client.get().uri("/api/dashboard"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DashboardResponse.class)
@@ -220,7 +220,7 @@ class DashboardIT {
     void dashboardWithInvalidMonth_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        user.authenticate(client.get().uri("/dashboard?month=not-a-month"))
+        user.authenticate(client.get().uri("/api/dashboard?month=not-a-month"))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST);
     }

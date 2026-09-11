@@ -47,7 +47,7 @@ class AccountIT {
     // AuthTestSupport.authenticate() devolve RequestHeadersSpec<?> (sem contentType()/body()),
     // então requisições com corpo montam cookie+header de sessão manualmente, como o AuthIT já faz.
     private EntityExchangeResult<AccountResponse> createAccount(AuthenticatedTestUser user, String name) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -76,7 +76,7 @@ class AccountIT {
 
     @Test
     void createAccountWithoutSession_returns401() {
-        client.post().uri("/accounts")
+        client.post().uri("/api/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateAccountRequest("Conta", AccountType.CHECKING, BigDecimal.ZERO))
                 .exchange()
@@ -91,7 +91,7 @@ class AccountIT {
         AuthenticatedTestUser other = registerUser();
         createAccount(other, "Conta de Outro Household");
 
-        EntityExchangeResult<List<AccountResponse>> result = owner.authenticate(client.get().uri("/accounts"))
+        EntityExchangeResult<List<AccountResponse>> result = owner.authenticate(client.get().uri("/api/accounts"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new org.springframework.core.ParameterizedTypeReference<List<AccountResponse>>() {
@@ -109,7 +109,7 @@ class AccountIT {
         UUID accountId = createAccount(owner, "Conta Privada").getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/accounts/" + accountId))
+        intruder.authenticate(client.get().uri("/api/accounts/" + accountId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -119,7 +119,7 @@ class AccountIT {
         AuthenticatedTestUser owner = registerUser();
         UUID accountId = createAccount(owner, "Conta Original").getResponseBody().id();
 
-        EntityExchangeResult<AccountResponse> result = client.put().uri("/accounts/" + accountId)
+        EntityExchangeResult<AccountResponse> result = client.put().uri("/api/accounts/" + accountId)
                 .cookie("JSESSIONID", owner.sessionCookie())
                 .cookie("XSRF-TOKEN", owner.csrfToken())
                 .header("X-XSRF-TOKEN", owner.csrfToken())
@@ -142,7 +142,7 @@ class AccountIT {
         UUID accountId = createAccount(owner, "Conta Privada").getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        client.put().uri("/accounts/" + accountId)
+        client.put().uri("/api/accounts/" + accountId)
                 .cookie("JSESSIONID", intruder.sessionCookie())
                 .cookie("XSRF-TOKEN", intruder.csrfToken())
                 .header("X-XSRF-TOKEN", intruder.csrfToken())
@@ -157,11 +157,11 @@ class AccountIT {
         AuthenticatedTestUser owner = registerUser();
         UUID accountId = createAccount(owner, "Conta a Excluir").getResponseBody().id();
 
-        owner.authenticate(client.delete().uri("/accounts/" + accountId))
+        owner.authenticate(client.delete().uri("/api/accounts/" + accountId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        owner.authenticate(client.get().uri("/accounts/" + accountId))
+        owner.authenticate(client.get().uri("/api/accounts/" + accountId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -172,7 +172,7 @@ class AccountIT {
         UUID accountId = createAccount(owner, "Conta Privada").getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.delete().uri("/accounts/" + accountId))
+        intruder.authenticate(client.delete().uri("/api/accounts/" + accountId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }

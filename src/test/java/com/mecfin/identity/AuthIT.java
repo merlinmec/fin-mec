@@ -39,13 +39,13 @@ class AuthIT {
     }
 
     private String freshCsrfToken() {
-        ExchangeResult bootstrap = client.get().uri("/csrf").exchange().returnResult();
+        ExchangeResult bootstrap = client.get().uri("/api/csrf").exchange().returnResult();
         return bootstrap.getResponseCookies().getFirst("XSRF-TOKEN").getValue();
     }
 
     private EntityExchangeResult<String> attemptLogin(String email, String password) {
         String token = freshCsrfToken();
-        return client.post().uri("/auth/login")
+        return client.post().uri("/api/auth/login")
                 .cookie("XSRF-TOKEN", token)
                 .header("X-XSRF-TOKEN", token)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +72,7 @@ class AuthIT {
         AuthTestSupport.registerAndLogin(client, email, "s3cret1234");
 
         String token = freshCsrfToken();
-        client.post().uri("/auth/register")
+        client.post().uri("/api/auth/register")
                 .cookie("XSRF-TOKEN", token)
                 .header("X-XSRF-TOKEN", token)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +85,7 @@ class AuthIT {
     void registerInvalidPayload_returns400WithValidationErrors() {
         String token = freshCsrfToken();
 
-        client.post().uri("/auth/register")
+        client.post().uri("/api/auth/register")
                 .cookie("XSRF-TOKEN", token)
                 .header("X-XSRF-TOKEN", token)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +100,7 @@ class AuthIT {
         AuthTestSupport.registerAndLogin(client, email, "s3cret1234");
         String token = freshCsrfToken();
 
-        EntityExchangeResult<UserResponse> result = client.post().uri("/auth/login")
+        EntityExchangeResult<UserResponse> result = client.post().uri("/api/auth/login")
                 .cookie("XSRF-TOKEN", token)
                 .header("X-XSRF-TOKEN", token)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +128,7 @@ class AuthIT {
 
     @Test
     void protectedEndpointWithoutSession_returns401ProblemDetail() {
-        client.get().uri("/auth/me")
+        client.get().uri("/api/auth/me")
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectHeader().contentType("application/problem+json;charset=UTF-8");
@@ -138,11 +138,11 @@ class AuthIT {
     void logout_invalidatesSession_subsequentMeReturns401() {
         AuthenticatedTestUser user = AuthTestSupport.registerAndLogin(client, uniqueEmail(), "s3cret1234");
 
-        user.authenticate(client.post().uri("/auth/logout"))
+        user.authenticate(client.post().uri("/api/auth/logout"))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        user.authenticate(client.get().uri("/auth/me"))
+        user.authenticate(client.get().uri("/api/auth/me"))
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
@@ -152,7 +152,7 @@ class AuthIT {
         String email = uniqueEmail();
         AuthenticatedTestUser user = AuthTestSupport.registerAndLogin(client, email, "s3cret1234");
 
-        user.authenticate(client.get().uri("/auth/me"))
+        user.authenticate(client.get().uri("/api/auth/me"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(UserResponse.class)

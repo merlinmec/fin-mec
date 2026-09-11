@@ -63,7 +63,7 @@ class CreditCardIT {
     }
 
     private UUID createAccount(AuthenticatedTestUser user) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -78,7 +78,7 @@ class CreditCardIT {
     }
 
     private UUID createCategory(AuthenticatedTestUser user) {
-        return client.post().uri("/categories")
+        return client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -93,7 +93,7 @@ class CreditCardIT {
     }
 
     private EntityExchangeResult<CreditCardResponse> createCard(AuthenticatedTestUser user, UUID paymentAccountId) {
-        return client.post().uri("/credit-cards")
+        return client.post().uri("/api/credit-cards")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -107,7 +107,7 @@ class CreditCardIT {
 
     private EntityExchangeResult<List<CreditCardChargeResponse>> registerCharge(
             AuthenticatedTestUser user, UUID cardId, UUID categoryId, LocalDate purchaseDate, Integer installments) {
-        return client.post().uri("/credit-cards/" + cardId + "/charges")
+        return client.post().uri("/api/credit-cards/" + cardId + "/charges")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -123,7 +123,7 @@ class CreditCardIT {
     }
 
     private UUID firstInvoiceId(AuthenticatedTestUser user, UUID cardId) {
-        return user.authenticate(client.get().uri("/credit-cards/" + cardId + "/invoices"))
+        return user.authenticate(client.get().uri("/api/credit-cards/" + cardId + "/invoices"))
                 .exchange()
                 .expectBody(new ParameterizedTypeReference<List<CreditCardInvoiceResponse>>() {
                 })
@@ -134,7 +134,7 @@ class CreditCardIT {
     }
 
     private EntityExchangeResult<CreditCardInvoiceResponse> payInvoice(AuthenticatedTestUser user, UUID invoiceId) {
-        return client.post().uri("/credit-card-invoices/" + invoiceId + "/pay")
+        return client.post().uri("/api/credit-card-invoices/" + invoiceId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -158,7 +158,7 @@ class CreditCardIT {
 
     @Test
     void createCreditCardWithoutSession_returns401() {
-        client.post().uri("/credit-cards")
+        client.post().uri("/api/credit-cards")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateCreditCardRequest("Nubank", new BigDecimal("5000.00"), 10, 17, null))
                 .exchange()
@@ -169,7 +169,7 @@ class CreditCardIT {
     void createCreditCardWithInvalidPaymentAccount_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        client.post().uri("/credit-cards")
+        client.post().uri("/api/credit-cards")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -186,7 +186,7 @@ class CreditCardIT {
         AuthenticatedTestUser other = registerUser();
         createCard(other, null);
 
-        List<CreditCardResponse> result = owner.authenticate(client.get().uri("/credit-cards"))
+        List<CreditCardResponse> result = owner.authenticate(client.get().uri("/api/credit-cards"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<CreditCardResponse>>() {
@@ -203,7 +203,7 @@ class CreditCardIT {
         UUID cardId = createCard(owner, null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/credit-cards/" + cardId))
+        intruder.authenticate(client.get().uri("/api/credit-cards/" + cardId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -213,7 +213,7 @@ class CreditCardIT {
         AuthenticatedTestUser user = registerUser();
         UUID cardId = createCard(user, null).getResponseBody().id();
 
-        CreditCardResponse updated = client.put().uri("/credit-cards/" + cardId)
+        CreditCardResponse updated = client.put().uri("/api/credit-cards/" + cardId)
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -234,11 +234,11 @@ class CreditCardIT {
         AuthenticatedTestUser user = registerUser();
         UUID cardId = createCard(user, null).getResponseBody().id();
 
-        user.authenticate(client.delete().uri("/credit-cards/" + cardId))
+        user.authenticate(client.delete().uri("/api/credit-cards/" + cardId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        user.authenticate(client.get().uri("/credit-cards/" + cardId))
+        user.authenticate(client.get().uri("/api/credit-cards/" + cardId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -248,7 +248,7 @@ class CreditCardIT {
         AuthenticatedTestUser user = registerUser();
         UUID cardId = createCard(user, null).getResponseBody().id();
 
-        client.post().uri("/credit-cards/" + cardId + "/charges")
+        client.post().uri("/api/credit-cards/" + cardId + "/charges")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -264,7 +264,7 @@ class CreditCardIT {
         AuthenticatedTestUser user = registerUser();
         UUID cardId = createCard(user, null).getResponseBody().id();
 
-        client.post().uri("/credit-cards/" + cardId + "/charges")
+        client.post().uri("/api/credit-cards/" + cardId + "/charges")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -283,7 +283,7 @@ class CreditCardIT {
         // Uma compra com data antiga o bastante resolve pra uma fatura cujo closingDate ja
         // passou (status efetivo CLOSED) - nao pode mais receber cobranca, mesmo sendo a
         // primeira (o periodo em si ja fechou, independente de ja ter cobranca ou nao).
-        client.post().uri("/credit-cards/" + cardId + "/charges")
+        client.post().uri("/api/credit-cards/" + cardId + "/charges")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -303,7 +303,7 @@ class CreditCardIT {
 
         registerCharge(user, cardId, categoryId, LocalDate.now(), null);
 
-        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/credit-cards/" + cardId + "/invoices"))
+        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/api/credit-cards/" + cardId + "/invoices"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<CreditCardInvoiceResponse>>() {
@@ -325,7 +325,7 @@ class CreditCardIT {
         registerCharge(user, cardId, null, LocalDate.now(), null);
         registerCharge(user, cardId, null, LocalDate.now(), null);
 
-        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/credit-cards/" + cardId + "/invoices"))
+        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/api/credit-cards/" + cardId + "/invoices"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<CreditCardInvoiceResponse>>() {
@@ -347,7 +347,7 @@ class CreditCardIT {
         assertThat(charges).hasSize(3);
         assertThat(charges).extracting(CreditCardChargeResponse::installmentTotal).containsExactly(3, 3, 3);
 
-        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/credit-cards/" + cardId + "/invoices"))
+        List<CreditCardInvoiceResponse> invoices = user.authenticate(client.get().uri("/api/credit-cards/" + cardId + "/invoices"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<CreditCardInvoiceResponse>>() {
@@ -373,7 +373,7 @@ class CreditCardIT {
         assertThat(paid.status()).isEqualTo(CreditCardInvoiceStatus.PAID);
         assertThat(paid.paidTransactionId()).isNotNull();
 
-        TransactionResponse transaction = user.authenticate(client.get().uri("/transactions/" + paid.paidTransactionId()))
+        TransactionResponse transaction = user.authenticate(client.get().uri("/api/transactions/" + paid.paidTransactionId()))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(TransactionResponse.class)
@@ -390,7 +390,7 @@ class CreditCardIT {
         registerCharge(user, cardId, null, LocalDate.now(), null);
         UUID invoiceId = firstInvoiceId(user, cardId);
 
-        client.post().uri("/credit-card-invoices/" + invoiceId + "/pay")
+        client.post().uri("/api/credit-card-invoices/" + invoiceId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -407,7 +407,7 @@ class CreditCardIT {
         UUID cardId = createCard(user, accountId).getResponseBody().id();
         registerCharge(user, cardId, null, LocalDate.now(), null);
         UUID invoiceId = firstInvoiceId(user, cardId);
-        client.post().uri("/credit-card-invoices/" + invoiceId + "/pay")
+        client.post().uri("/api/credit-card-invoices/" + invoiceId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -416,7 +416,7 @@ class CreditCardIT {
                 .exchange()
                 .expectStatus().isOk();
 
-        client.post().uri("/credit-card-invoices/" + invoiceId + "/pay")
+        client.post().uri("/api/credit-card-invoices/" + invoiceId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -448,7 +448,7 @@ class CreditCardIT {
                 "UPDATE credit_card_invoices SET closing_date = ? WHERE id = ?",
                 java.sql.Date.valueOf(LocalDate.now().minusDays(1)), invoiceId);
 
-        CreditCardInvoiceResponse before = user.authenticate(client.get().uri("/credit-card-invoices/" + invoiceId))
+        CreditCardInvoiceResponse before = user.authenticate(client.get().uri("/api/credit-card-invoices/" + invoiceId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(CreditCardInvoiceResponse.class)
@@ -469,11 +469,11 @@ class CreditCardIT {
         UUID chargeId = registerCharge(user, cardId, null, LocalDate.now(), null).getResponseBody().get(0).id();
         UUID invoiceId = firstInvoiceId(user, cardId);
 
-        user.authenticate(client.delete().uri("/credit-card-invoices/" + invoiceId + "/charges/" + chargeId))
+        user.authenticate(client.delete().uri("/api/credit-card-invoices/" + invoiceId + "/charges/" + chargeId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        CreditCardInvoiceResponse invoice = user.authenticate(client.get().uri("/credit-card-invoices/" + invoiceId))
+        CreditCardInvoiceResponse invoice = user.authenticate(client.get().uri("/api/credit-card-invoices/" + invoiceId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(CreditCardInvoiceResponse.class)
@@ -491,7 +491,7 @@ class CreditCardIT {
         UUID invoiceId = firstInvoiceId(owner, cardId);
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/credit-card-invoices/" + invoiceId))
+        intruder.authenticate(client.get().uri("/api/credit-card-invoices/" + invoiceId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
