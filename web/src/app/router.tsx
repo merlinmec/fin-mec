@@ -5,6 +5,7 @@ import { LoginPage } from "@/routes/auth/LoginPage";
 import { RegisterPage } from "@/routes/auth/RegisterPage";
 import { DashboardPlaceholder } from "@/routes/DashboardPlaceholder";
 import { AccountsPage } from "@/routes/accounts/AccountsPage";
+import { CategoriesPage } from "@/routes/categories/CategoriesPage";
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPlaceholder /> },
           { path: "contas", element: <AccountsPage /> },
+          { path: "categorias", element: <CategoriesPage /> },
         ],
       },
     ],
