@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 const NAV_SECTIONS = [
   { label: "Dashboard", to: "/", ready: false },
   { label: "Contas", to: "/contas", ready: true },
+  { label: "Categorias", to: "/categorias", ready: true },
   { label: "Lançamentos", to: "/lancamentos", ready: false },
   { label: "Orçamento", to: "/orcamento", ready: false },
   { label: "Contas a pagar", to: "/contas-a-pagar", ready: false },
