@@ -55,7 +55,7 @@ class BillIT {
     }
 
     private UUID createAccount(AuthenticatedTestUser user) {
-        return client.post().uri("/accounts")
+        return client.post().uri("/api/accounts")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -70,7 +70,7 @@ class BillIT {
     }
 
     private UUID createCategory(AuthenticatedTestUser user) {
-        return client.post().uri("/categories")
+        return client.post().uri("/api/categories")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -86,7 +86,7 @@ class BillIT {
 
     private EntityExchangeResult<BillResponse> createBill(
             AuthenticatedTestUser user, LocalDate dueDate, UUID sourceAccountId) {
-        return client.post().uri("/bills")
+        return client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -112,7 +112,7 @@ class BillIT {
 
     @Test
     void createBillWithoutSession_returns401() {
-        client.post().uri("/bills")
+        client.post().uri("/api/bills")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new CreateBillRequest("Aluguel", BigDecimal.TEN, LocalDate.now(), null, null, null))
                 .exchange()
@@ -123,7 +123,7 @@ class BillIT {
     void createBillWithInvisibleCategory_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        client.post().uri("/bills")
+        client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -137,7 +137,7 @@ class BillIT {
     void createBillWithInvalidSourceAccount_returns400() {
         AuthenticatedTestUser user = registerUser();
 
-        client.post().uri("/bills")
+        client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -154,7 +154,7 @@ class BillIT {
         AuthenticatedTestUser other = registerUser();
         createBill(other, LocalDate.now().plusDays(5), null);
 
-        List<BillResponse> result = owner.authenticate(client.get().uri("/bills"))
+        List<BillResponse> result = owner.authenticate(client.get().uri("/api/bills"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<BillResponse>>() {
@@ -170,7 +170,7 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         createBill(user, LocalDate.now().minusDays(3), null);
 
-        List<BillResponse> result = user.authenticate(client.get().uri("/bills?status=OVERDUE"))
+        List<BillResponse> result = user.authenticate(client.get().uri("/api/bills?status=OVERDUE"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(new ParameterizedTypeReference<List<BillResponse>>() {
@@ -188,7 +188,7 @@ class BillIT {
         UUID billId = createBill(owner, LocalDate.now().plusDays(5), null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.get().uri("/bills/" + billId))
+        intruder.authenticate(client.get().uri("/api/bills/" + billId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -198,7 +198,7 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         UUID billId = createBill(user, LocalDate.now().plusDays(5), null).getResponseBody().id();
 
-        EntityExchangeResult<BillResponse> result = client.put().uri("/bills/" + billId)
+        EntityExchangeResult<BillResponse> result = client.put().uri("/api/bills/" + billId)
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -219,7 +219,7 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         UUID accountId = createAccount(user);
         UUID categoryId = createCategory(user);
-        UUID billId = client.post().uri("/bills")
+        UUID billId = client.post().uri("/api/bills")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -232,7 +232,7 @@ class BillIT {
                 .getResponseBody()
                 .id();
 
-        EntityExchangeResult<BillResponse> payResult = client.post().uri("/bills/" + billId + "/pay")
+        EntityExchangeResult<BillResponse> payResult = client.post().uri("/api/bills/" + billId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -247,7 +247,7 @@ class BillIT {
         assertThat(bill.status()).isEqualTo(BillStatus.PAID);
         assertThat(bill.paidTransactionId()).isNotNull();
 
-        TransactionResponse transaction = user.authenticate(client.get().uri("/transactions/" + bill.paidTransactionId()))
+        TransactionResponse transaction = user.authenticate(client.get().uri("/api/transactions/" + bill.paidTransactionId()))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(TransactionResponse.class)
@@ -263,7 +263,7 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         UUID billId = createBill(user, LocalDate.now().plusDays(5), null).getResponseBody().id();
 
-        client.post().uri("/bills/" + billId + "/pay")
+        client.post().uri("/api/bills/" + billId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -279,7 +279,7 @@ class BillIT {
         UUID accountId = createAccount(user);
         UUID billId = createBill(user, LocalDate.now().plusDays(5), accountId).getResponseBody().id();
 
-        BillResponse bill = client.post().uri("/bills/" + billId + "/pay")
+        BillResponse bill = client.post().uri("/api/bills/" + billId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -299,7 +299,7 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         UUID accountId = createAccount(user);
         UUID billId = createBill(user, LocalDate.now().plusDays(5), accountId).getResponseBody().id();
-        client.post().uri("/bills/" + billId + "/pay")
+        client.post().uri("/api/bills/" + billId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -308,7 +308,7 @@ class BillIT {
                 .exchange()
                 .expectStatus().isOk();
 
-        client.post().uri("/bills/" + billId + "/pay")
+        client.post().uri("/api/bills/" + billId + "/pay")
                 .cookie("JSESSIONID", user.sessionCookie())
                 .cookie("XSRF-TOKEN", user.csrfToken())
                 .header("X-XSRF-TOKEN", user.csrfToken())
@@ -323,11 +323,11 @@ class BillIT {
         AuthenticatedTestUser user = registerUser();
         UUID billId = createBill(user, LocalDate.now().plusDays(5), null).getResponseBody().id();
 
-        user.authenticate(client.delete().uri("/bills/" + billId))
+        user.authenticate(client.delete().uri("/api/bills/" + billId))
                 .exchange()
                 .expectStatus().isNoContent();
 
-        BillResponse bill = user.authenticate(client.get().uri("/bills/" + billId))
+        BillResponse bill = user.authenticate(client.get().uri("/api/bills/" + billId))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(BillResponse.class)
@@ -342,7 +342,7 @@ class BillIT {
         UUID billId = createBill(owner, LocalDate.now().plusDays(5), null).getResponseBody().id();
         AuthenticatedTestUser intruder = registerUser();
 
-        intruder.authenticate(client.delete().uri("/bills/" + billId))
+        intruder.authenticate(client.delete().uri("/api/bills/" + billId))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.NOT_FOUND);
     }
