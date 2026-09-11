@@ -1,20 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   createAccount,
   deleteAccount,
-  listAccounts,
   updateAccount,
   type CreateAccountPayload,
   type UpdateAccountPayload,
 } from "@/api/accounts";
+import { accountsQueryKey as accountsKey } from "@/hooks/useAccounts";
 import { getErrorMessage } from "@/lib/errors";
 
-const accountsKey = ["accounts"] as const;
-
-export function useAccounts() {
-  return useQuery({ queryKey: accountsKey, queryFn: listAccounts });
-}
+export { useAccounts } from "@/hooks/useAccounts";
 
 export function useCreateAccount() {
   const queryClient = useQueryClient();

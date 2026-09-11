@@ -11,7 +11,7 @@ const NAV_SECTIONS = [
   { label: "Dashboard", to: "/", ready: false },
   { label: "Contas", to: "/contas", ready: true },
   { label: "Categorias", to: "/categorias", ready: true },
-  { label: "Lançamentos", to: "/lancamentos", ready: false },
+  { label: "Lançamentos", to: "/lancamentos", ready: true },
   { label: "Orçamento", to: "/orcamento", ready: false },
   { label: "Contas a pagar", to: "/contas-a-pagar", ready: false },
   { label: "Cartões", to: "/cartoes", ready: false },
