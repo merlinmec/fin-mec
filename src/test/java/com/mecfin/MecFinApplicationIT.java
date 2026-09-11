@@ -29,7 +29,7 @@ class MecFinApplicationIT {
     @Test
     void healthEndpointRespondsUp() {
         restTestClient.get()
-                .uri("/actuator/health")
+                .uri("/api/actuator/health")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .expectBody(String.class)

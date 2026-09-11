@@ -5,11 +5,10 @@ spring:
     password: test-only-placeholder
 
 # Este arquivo SUBSTITUI (não mescla com) src/main/resources/application.yml nos
-# testes. O context-path precisa ser replicado aqui para que os testes de
-# integração exerçam a API sob /api, igual a produção.
-server:
-  servlet:
-    context-path: /api
+# testes — mas o prefixo /api agora vem do bean WebConfig (@Configuration comum,
+# carregado pelo Spring context dos testes igual qualquer outro bean), não de uma
+# propriedade de application.yml, então não há nada pra replicar aqui pra esse fim
+# especificamente (era o caso do antigo server.servlet.context-path).
 
 mecfin:
   rate-limit:
