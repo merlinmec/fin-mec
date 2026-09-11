@@ -34,22 +34,24 @@ public class SecurityConfig {
             SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
+                        .requestMatchers("/api/actuator/health", "/api/actuator/health/**").permitAll()
+                        .requestMatchers("/api/csrf").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                         .anyRequest().authenticated())
                 // .spa() usa CsrfTokenRequestHandler.resolveCsrfTokenValue() em modo "plain" quando o
                 // header X-XSRF-TOKEN esta presente (so cai para o XOR/BREACH-safe no fallback de
                 // parametro de formulario) - ou seja, o valor esperado no header e o token CRU salvo
                 // no cookie, no o valor mascarado que CsrfToken#getToken() expoe (esse e so para
-                // renderizar em campo de formulario escondido). Cookie com path proprio, sobrescrito
-                // abaixo para "/": o default do CookieCsrfTokenRepository e o context-path ("/api"),
-                // invisivel a document.cookie no SPA servido em "/".
+                // renderizar em campo de formulario escondido). Cookie com path proprio, explicito
+                // como "/": nao ha mais server.servlet.context-path (ver WebConfig — a API agora usa
+                // um prefixo de path em vez de context-path, justamente pra nao arrastar o cookie/o
+                // resto do app pra debaixo de /api), mas o default do CookieCsrfTokenRepository ainda
+                // depende do contexto da requisicao, entao mante-lo explicito evita ambiguidade.
                 .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .logout(logout -> logout
-                        .logoutUrl("/auth/logout")
+                        .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)));
