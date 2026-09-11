@@ -2,13 +2,14 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/auth/auth-context";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/NotificationBell";
 
 /**
  * Casca autenticada: sidebar de navegacao + topbar. As secoes ainda nao tem
  * tela (chegam nas fases FE-2..FE-8); os itens ficam desabilitados ate la.
  */
 const NAV_SECTIONS = [
-  { label: "Dashboard", to: "/", ready: false },
+  { label: "Dashboard", to: "/", ready: true },
   { label: "Contas", to: "/contas", ready: true },
   { label: "Categorias", to: "/categorias", ready: true },
   { label: "Lançamentos", to: "/lancamentos", ready: true },
@@ -61,6 +62,7 @@ export function AppShell() {
 
       <div className="flex flex-col">
         <header className="flex h-14 items-center justify-end gap-4 border-b border-border px-6 text-sm text-muted-foreground">
+          <NotificationBell />
           <span>{user?.email}</span>
           <Button variant="outline" size="sm" onClick={() => void handleLogout()}>
             Sair
