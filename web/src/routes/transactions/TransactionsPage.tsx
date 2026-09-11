@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Transaction, TransactionType } from "@/api/transactions";
 import { TRANSACTION_TYPE_LABELS } from "@/api/transactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { AccountSelect } from "@/components/AccountSelect";
 import { CategorySelect } from "@/components/CategorySelect";
+import { MonthSelector } from "@/components/MonthSelector";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
-import { currentYearMonth, formatYearMonth, shiftYearMonth } from "@/lib/dates";
+import { currentYearMonth, formatYearMonth } from "@/lib/dates";
 import { useTransactions } from "./hooks";
 import { TransactionRow } from "./TransactionRow";
 import { TransactionFormDialog } from "./TransactionFormDialog";
@@ -43,8 +43,8 @@ export function TransactionsPage() {
     size: PAGE_SIZE,
   });
 
-  function changeMonth(delta: number) {
-    setMonth((m) => shiftYearMonth(m, delta));
+  function changeMonth(next: string) {
+    setMonth(next);
     setPage(0);
   }
 
@@ -74,15 +74,7 @@ export function TransactionsPage() {
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => changeMonth(-1)} aria-label="Mês anterior">
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-40 text-center text-sm font-medium">{formatYearMonth(month)}</span>
-          <Button variant="ghost" size="icon" onClick={() => changeMonth(1)} aria-label="Próximo mês">
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+        <MonthSelector value={month} onChange={changeMonth} />
 
         <div className="min-w-48 flex-1 space-y-1">
           <span className="text-xs text-muted-foreground">Conta</span>
