@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
   DialogContent,
@@ -88,13 +88,13 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="type">Tipo</Label>
-          <Select id="type" aria-invalid={!!errors.type} {...register("type")}>
+          <NativeSelect id="type" aria-invalid={!!errors.type} {...register("type")}>
             {ACCOUNT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {ACCOUNT_TYPE_LABELS[type]}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
           {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
         </div>
 
@@ -167,13 +167,13 @@ function EditAccountForm({ account, onDone }: { account: Account; onDone: () => 
 
         <div className="space-y-1.5">
           <Label htmlFor="edit-type">Tipo</Label>
-          <Select id="edit-type" aria-invalid={!!errors.type} {...register("type")}>
+          <NativeSelect id="edit-type" aria-invalid={!!errors.type} {...register("type")}>
             {ACCOUNT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {ACCOUNT_TYPE_LABELS[type]}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
           {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
         </div>
 
