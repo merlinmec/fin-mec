@@ -2,7 +2,8 @@
  * Cliente HTTP do fin-mec. Fino wrapper sobre fetch:
  *  - base fixa em /api (context-path do backend; em dev o Vite faz proxy);
  *  - credentials: "include" para o cookie de sessao (JSESSIONID);
- *  - injeta o header CSRF nas mutacoes a partir do token obtido em /api/csrf;
+ *  - injeta o header CSRF nas mutacoes lendo o cookie XSRF-TOKEN direto
+ *    (ver secao CSRF abaixo — nao usar o campo "token" do corpo de /api/csrf);
  *  - 401 dispara o handler global (limpar auth + redirecionar para /login);
  *  - erros viram ApiError com o corpo RFC 7807 (application/problem+json).
  *
@@ -38,19 +39,25 @@ export class ApiError extends Error {
 }
 
 // --- CSRF -------------------------------------------------------------------
-// O SPA e servido em "/" mas o cookie XSRF-TOKEN tem path "/api", entao
-// document.cookie nao o enxerga. Por isso o token vem do corpo de GET /api/csrf
-// (JSON { token, headerName, parameterName }) e fica em memoria aqui.
+// SecurityConfig usa CsrfConfigurer.spa(): quando a mutacao chega com o header
+// X-XSRF-TOKEN preenchido, o backend resolve o valor em modo "plain" (compara
+// direto com o token cru guardado no CsrfTokenRepository) — NAO faz o
+// decode XOR/BREACH que so se aplica ao fallback via parametro de formulario.
+// Ou seja, o header precisa do valor CRU do cookie XSRF-TOKEN, nao do campo
+// "token" retornado no corpo JSON de GET /api/csrf (esse e o valor mascarado,
+// pensado pra ir num campo _csrf de formulario HTML, nao no header). O cookie
+// tem path "/" (CookieCsrfTokenRepository#setCookiePath, ver SecurityConfig no
+// backend), entao o SPA servido em "/" consegue ler com document.cookie.
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
+let csrfHeaderName = "X-XSRF-TOKEN"; // default do Spring; bootstrapCsrf() confirma via /api/csrf
 
-interface CsrfState {
-  headerName: string;
-  token: string;
+export function setCsrfHeaderName(headerName: string): void {
+  csrfHeaderName = headerName;
 }
 
-let csrf: CsrfState | null = null;
-
-export function setCsrfToken(next: CsrfState | null): void {
-  csrf = next;
+function readCsrfCookie(): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 // --- 401 handler ----------------------------------------------------------
@@ -80,8 +87,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  if (!SAFE_METHODS.has(method) && csrf) {
-    headers.set(csrf.headerName, csrf.token);
+  if (!SAFE_METHODS.has(method)) {
+    const token = readCsrfCookie();
+    if (token) {
+      headers.set(csrfHeaderName, token);
+    }
   }
 
   const res = await fetch(BASE + path, { ...init, method, headers, credentials: "include" });

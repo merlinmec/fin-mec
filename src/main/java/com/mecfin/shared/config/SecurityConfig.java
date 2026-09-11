@@ -16,6 +16,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 
 /**
  * Fase 0: negava tudo por padrão, liberava só o health check.
@@ -29,14 +31,21 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, RestAuthenticationEntryPoint restAuthenticationEntryPoint,
-            SecurityContextRepository securityContextRepository) throws Exception {
+            SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
                         .anyRequest().authenticated())
-                .csrf(CsrfConfigurer::spa)
+                // .spa() usa CsrfTokenRequestHandler.resolveCsrfTokenValue() em modo "plain" quando o
+                // header X-XSRF-TOKEN esta presente (so cai para o XOR/BREACH-safe no fallback de
+                // parametro de formulario) - ou seja, o valor esperado no header e o token CRU salvo
+                // no cookie, no o valor mascarado que CsrfToken#getToken() expoe (esse e so para
+                // renderizar em campo de formulario escondido). Cookie com path proprio, sobrescrito
+                // abaixo para "/": o default do CookieCsrfTokenRepository e o context-path ("/api"),
+                // invisivel a document.cookie no SPA servido em "/".
+                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .logout(logout -> logout
@@ -45,6 +54,13 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)));
         return http.build();
+    }
+
+    @Bean
+    CsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookiePath("/");
+        return repository;
     }
 
     @Bean
