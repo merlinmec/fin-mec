@@ -1,4 +1,4 @@
-import { api, setCsrfToken } from "./client";
+import { api, setCsrfHeaderName } from "./client";
 
 interface CsrfResponse {
   token: string;
@@ -7,11 +7,14 @@ interface CsrfResponse {
 }
 
 /**
- * Forca a emissao do token CSRF e o guarda em memoria no cliente HTTP.
- * Deve ser chamado no boot da aplicacao e novamente apos login/logout, pois o
- * Spring Security renova o token nesses momentos (CsrfAuthenticationStrategy).
+ * Forca a resolucao do CsrfToken adiado no backend (deferred loading), o que
+ * escreve o cookie XSRF-TOKEN na resposta. O client.ts le o valor do cookie
+ * diretamente a cada mutacao; esta chamada so garante que o cookie exista e
+ * guarda o headerName retornado (hoje sempre "X-XSRF-TOKEN", mas evita
+ * hardcode). Deve ser chamada no boot e de novo apos login/logout, ja que o
+ * Spring limpa e renova o token nesses momentos (CsrfAuthenticationStrategy).
  */
 export async function bootstrapCsrf(): Promise<void> {
   const res = await api.get<CsrfResponse>("/csrf");
-  setCsrfToken({ headerName: res.headerName, token: res.token });
+  setCsrfHeaderName(res.headerName);
 }
