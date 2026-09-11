@@ -4,9 +4,11 @@ import com.mecfin.creditcard.domain.CreditCardInvoiceStatus;
 import com.mecfin.shared.exception.ConflictException;
 import java.util.UUID;
 
-// Registrar cobrança, apagar cobrança e pagar só são permitidos enquanto a fatura está com
-// status efetivo OPEN - uma vez CLOSED (fechada, aguardando pagamento) ou PAID, essas ações não
-// fazem mais sentido. Mesmo espírito de BillNotOpenException.
+// Registrar/apagar cobrança só são permitidos com a fatura no status EFETIVO OPEN (antes do
+// fechamento) - ver CreditCardService#requireOpen. Pagar é mais permissivo: funciona com OPEN
+// ou CLOSED (o caso normal - fatura fechou, hora de pagar), só PAID é bloqueado - ver
+// CreditCardService#requireNotPaid. Mesmo espírito de BillNotOpenException/Bill.isOpen(), que
+// já permitia pagar uma Bill OVERDUE.
 public class CreditCardInvoiceNotOpenException extends ConflictException {
 
     public CreditCardInvoiceNotOpenException(UUID id, CreditCardInvoiceStatus effectiveStatus) {
