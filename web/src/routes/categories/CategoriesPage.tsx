@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Category } from "@/api/categories";
 import { Button } from "@/components/ui/button";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { useCategories } from "./hooks";
 import { CategoryRow } from "./CategoryRow";
 import { CategoryFormDialog } from "./CategoryFormDialog";
@@ -22,7 +23,7 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Categorias</h1>
           <p className="text-sm text-muted-foreground">
@@ -32,7 +33,7 @@ export function CategoriesPage() {
         <Button onClick={openCreate}>Nova categoria</Button>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando categorias…</p>}
+      {isPending && <TableSkeleton columns={3} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

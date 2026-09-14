@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
+import { PiggyBank } from "lucide-react";
 import type { Budget } from "@/api/budgets";
 import { useCategories } from "@/hooks/useCategories";
+import { CardGridSkeleton } from "@/components/CardGridSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 import { MonthSelector } from "@/components/MonthSelector";
 import { Button } from "@/components/ui/button";
 import { currentYearMonth } from "@/lib/dates";
@@ -37,7 +40,7 @@ export function BudgetsPage() {
         </div>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando orçamentos…</p>}
+      {isPending && <CardGridSkeleton />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -46,9 +49,7 @@ export function BudgetsPage() {
       )}
 
       {budgets && budgets.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhum orçamento planejado pra esse mês ainda.
-        </div>
+        <EmptyState icon={PiggyBank} title="Nenhum orçamento planejado" description="Crie um limite por categoria pra acompanhar o mês." />
       )}
 
       {budgets && budgets.length > 0 && (

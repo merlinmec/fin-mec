@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Receipt } from "lucide-react";
 import type { Category } from "@/api/categories";
 import type { CreditCardCharge } from "@/api/creditCards";
 import { useCategories } from "@/hooks/useCategories";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -39,7 +41,7 @@ export function InvoiceDetailPage() {
         </Link>
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando fatura…</p>}
+      {isPending && <TableSkeleton columns={3} />}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -69,9 +71,7 @@ export function InvoiceDetailPage() {
           )}
 
           {invoice.charges.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Nenhuma cobrança nessa fatura.
-            </div>
+            <EmptyState icon={Receipt} title="Nenhuma cobrança nessa fatura" />
           ) : (
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
