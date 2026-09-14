@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { MonthSelector } from "@/components/MonthSelector";
+import { CardGridSkeleton } from "@/components/CardGridSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
 import { currentYearMonth, formatYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -29,7 +31,16 @@ export function DashboardPage() {
         <MonthSelector value={month} onChange={setMonth} />
       </div>
 
-      {isPending && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {isPending && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          <CardGridSkeleton cards={4} />
+        </div>
+      )}
 
       {isError && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
