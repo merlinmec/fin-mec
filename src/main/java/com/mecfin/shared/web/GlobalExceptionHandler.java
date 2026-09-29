@@ -1,6 +1,7 @@
 package com.mecfin.shared.web;
 
 import com.mecfin.shared.exception.ConflictException;
+import com.mecfin.shared.exception.ForbiddenException;
 import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.shared.exception.TooManyRequestsException;
 import com.mecfin.shared.exception.UpstreamUnavailableException;
@@ -57,6 +58,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setTitle("Conflict");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ProblemDetail> handleForbidden(ForbiddenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Forbidden");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(NotFoundException.class)

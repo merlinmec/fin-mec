@@ -12,6 +12,7 @@ import {
   Tags,
   Trash2,
   UserX,
+  Users,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ import { PageHeader, Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import { useHousehold } from "@/hooks/useHousehold";
 import {
   useDeleteTag,
   useRecurringSeries,
@@ -50,11 +52,13 @@ import { getErrorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/money";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { HouseholdSection } from "./HouseholdSection";
 import { RulesSection } from "./RulesSection";
 import { SecuritySection } from "./SecuritySection";
 
 const TABS = [
   { id: "seguranca", label: "Segurança", icon: ShieldCheck },
+  { id: "compartilhar", label: "Compartilhamento", icon: Users },
   { id: "fixos", label: "Lançamentos fixos", icon: Repeat },
   { id: "tags", label: "Tags", icon: Tags },
   { id: "regras", label: "Regras automáticas", icon: Wand2 },
@@ -75,7 +79,7 @@ export function SettingsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Configurações"
-        description="Segurança da conta, automações e preferências."
+        description="Segurança, compartilhamento, automações e preferências."
       />
       <div className="grid gap-5 lg:grid-cols-[13rem_1fr]">
         <nav
@@ -102,6 +106,7 @@ export function SettingsPage() {
         </nav>
         <div className="min-w-0">
           {active === "seguranca" && <SecuritySection />}
+          {active === "compartilhar" && <HouseholdSection />}
           {active === "fixos" && <RecurringSection />}
           {active === "tags" && <TagsSection />}
           {active === "regras" && <RulesSection />}
@@ -407,10 +412,14 @@ function DeleteAccountSection() {
   const [code, setCode] = useState("");
   const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { data: household } = useHousehold();
+  const shared = (household?.members.length ?? 1) > 1;
   const mutation = useMutation({
     mutationFn: () => deleteAccount(password, code),
     onSuccess: async () => {
-      toast.success("Sua conta e todos os seus dados foram excluídos.");
+      toast.success(
+        shared ? "Sua conta foi excluída." : "Sua conta e todos os seus dados foram excluídos.",
+      );
       await refresh();
       void navigate("/login", { replace: true });
     },
@@ -420,13 +429,25 @@ function DeleteAccountSection() {
   return (
     <Panel title="Excluir conta" className="border-destructive/30">
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Apaga definitivamente sua conta e{" "}
-          <strong className="font-semibold text-foreground">todos</strong> os dados financeiros:
-          contas, lançamentos, cartões, orçamentos, metas e histórico. Não há como desfazer. É o seu
-          direito de eliminação de dados (LGPD, art. 18). Se quiser uma cópia antes, exporte seus
-          lançamentos em CSV.
-        </p>
+        {shared ? (
+          <p className="text-sm text-muted-foreground">
+            Apaga definitivamente sua conta e seus dados pessoais (login, 2FA, histórico de
+            segurança). Os dados financeiros são do household “{household?.name}” e{" "}
+            <strong className="font-semibold text-foreground">continuam</strong> com as outras
+            pessoas; seus lançamentos passam a aparecer sem autor.
+            {household?.myRole === "OWNER" &&
+              " Como você é o dono, a posse passa para o membro mais antigo."}{" "}
+            Não há como desfazer (LGPD, art. 18).
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Apaga definitivamente sua conta e{" "}
+            <strong className="font-semibold text-foreground">todos</strong> os dados financeiros:
+            contas, lançamentos, cartões, orçamentos, metas e histórico. Não há como desfazer. É o
+            seu direito de eliminação de dados (LGPD, art. 18). Se quiser uma cópia antes, exporte
+            seus lançamentos em CSV.
+          </p>
+        )}
         <form
           className="grid gap-3 sm:max-w-md"
           onSubmit={(e) => {

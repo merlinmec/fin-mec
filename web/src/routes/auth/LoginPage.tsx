@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/auth/auth-context";
 import { getErrorMessage } from "@/lib/errors";
+import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,11 +27,7 @@ export function LoginPage() {
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   function goNext() {
-    const next = searchParams.get("next");
-    // Só caminho interno ("/x", nunca "//evil.com"): evita open redirect via ?next=.
-    void navigate(next && next.startsWith("/") && !next.startsWith("//") ? next : "/", {
-      replace: true,
-    });
+    void navigate(safeNext(searchParams.get("next")), { replace: true });
   }
 
   async function onSubmit(values: LoginFormValues) {
@@ -184,7 +181,10 @@ export function LoginPage() {
 
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 Ainda não tem conta?{" "}
-                <Link to="/register" className="font-medium text-primary hover:underline">
+                <Link
+                  to={`/register${nextQuery(searchParams.get("next"))}`}
+                  className="font-medium text-primary hover:underline"
+                >
                   Criar conta
                 </Link>
               </p>

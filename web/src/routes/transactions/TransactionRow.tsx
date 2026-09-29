@@ -15,6 +15,7 @@ import type { Tag } from "@/api/tags";
 import type { EditScope, Transaction } from "@/api/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { TagChip } from "@/components/TagPicker";
+import { memberLabel, useHousehold } from "@/hooks/useHousehold";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -62,6 +63,14 @@ export function TransactionRow({
   const canceled = transaction.status === "CANCELED";
   const pending = transaction.status === "PENDING";
   const isOccurrence = transaction.recurrenceSeriesId !== null;
+  const { data: household } = useHousehold();
+  // "Quem lançou" só com mais de uma pessoa no household, e só quando se sabe: lançamentos de
+  // antes da Fase 17 e os automáticos (banco, recorrência) não têm autor registrado.
+  const authorMember =
+    household && household.members.length > 1 && transaction.createdBy
+      ? household.members.find((m) => m.userId === transaction.createdBy)
+      : undefined;
+  const author = authorMember ? memberLabel(authorMember.email, authorMember.you) : null;
   const tags = transaction.tagIds
     .map((id) => tagsById.get(id))
     .filter((t): t is Tag => t !== undefined);
@@ -116,6 +125,12 @@ export function TransactionRow({
           </span>
           <span aria-hidden>·</span>
           <span className="truncate">{account?.name ?? "Conta removida"}</span>
+          {author && (
+            <>
+              <span aria-hidden>·</span>
+              <span title="Quem lançou">por {author}</span>
+            </>
+          )}
           {transaction.installmentNumber && (
             <span className="inline-flex items-center gap-0.5">
               <Layers className="size-3" /> {transaction.installmentNumber}/

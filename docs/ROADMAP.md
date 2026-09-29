@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026 (Fases 15, 16 e 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fases 15 a 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -23,7 +23,7 @@ nem acesso a contas reais):
 | Importação OFX/CSV | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
 | Regras de categorização automática | parcial | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
 | Open Finance (sincronização bancária) | ✔ | ✔ | ✔ (EUA) | ✔ | ✘ | ✔ Fase 16 (Pluggy) |
-| Conta compartilhada (casal/família) | ✔ | ✔ | ✔ | ✔ | ✘ | schema pronto → Fase 17 |
+| Conta compartilhada (casal/família) | ✔ | ✔ | ✔ | ✔ | ✘ | ✔ Fase 17 |
 | Recuperação de senha por e-mail | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 18 |
 | App mobile / PWA | nativo | nativo | nativo | nativo | PWA | responsivo → Fase 20 |
 
@@ -100,12 +100,28 @@ apps de finanças.
 - **Para ativar:** `PLUGGY_CLIENT_ID`/`PLUGGY_CLIENT_SECRET` (dashboard.pluggy.ai); sem eles a tela
   mostra como ativar e aponta para a importação de arquivo.
 
-### Fase 17: Household compartilhado
+### Fase 17: Household compartilhado — ✔ entregue
 - Convite por e-mail com token de uso único, papéis OWNER/MEMBER já
   modelados, "quem lançou" em cada lançamento, transferência de posse antes de
   excluir a conta do dono (hoje a exclusão só remove a participação).
 - **Pronto quando:** dois usuários veem os mesmos dados; membro removido perde
   acesso na hora (reaproveitar o carimbo de segurança).
+
+- **Entregue:** convite de uso único (hash SHA-256, 7 dias) preso ao e-mail convidado — o link
+  encaminhado para outra pessoa não funciona; o link também aparece para o dono, então funciona
+  sem SMTP. Até 6 pessoas. Só o dono convida, remove, renomeia e transfere a posse (403 para os
+  demais). "Quem lançou" via `@CreatedBy` do Spring Data (cobre todo caminho de criação; sistema =
+  sem autor). Remover/sair gira o carimbo de segurança: as sessões da pessoa caem na hora e ela
+  ganha um household pessoal vazio. Dono que exclui a conta passa a posse ao membro mais antigo.
+- **Decisão consciente:** um usuário está em um household por vez (índice único) e aceitar um
+  convite **substitui** o household pessoal — com dados dentro, só com confirmação explícita. Não
+  existe "mesclar": categorias, contas e saldos de dois espaços colidiriam.
+- **Achados no caminho:** (1) bug da Fase 16 — a exclusão de conta de qualquer membro revogava a
+  conexão bancária do household inteiro; agora só quando o household é de fato apagado (teste de
+  regressão). (2) O `application.yml` de teste não tinha `ddl-auto: validate`: nenhum teste
+  conferia entidade x schema (o mesmo buraco da Fase 8); ligado e provado com um tipo errado de
+  propósito. (3) O cache do front não era limpo no logout — quem entrasse depois na mesma aba via
+  por um instante os dados da pessoa anterior.
 
 ### Fase 18: Produção (a Fase 11 do roadmap original) — ✔ entregue (falta escolher onde hospedar)
 - Deploy com HTTPS (HSTS já configurado), `server.forward-headers-strategy`
