@@ -114,6 +114,27 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("status") TransactionStatus status,
             @Param("asOfDate") LocalDate asOfDate);
 
+    // ---- importação de extrato (Fase 15) ----
+
+    @Query("SELECT t.externalId FROM Transaction t WHERE t.accountId = :accountId AND t.externalId IN :externalIds")
+    List<String> findExternalIds(@Param("accountId") UUID accountId, @Param("externalIds") List<String> externalIds);
+
+    // Candidatos a duplicado manual / previsto a efetivar na janela de datas do extrato.
+    @Query("SELECT t FROM Transaction t WHERE t.accountId = :accountId "
+            + "AND t.transactionDate BETWEEN :fromDate AND :toDate "
+            + "AND t.status <> com.mecfin.transaction.domain.TransactionStatus.CANCELED "
+            + "AND t.type <> com.mecfin.transaction.domain.TransactionType.TRANSFER")
+    List<Transaction> findForStatementMatching(
+            @Param("accountId") UUID accountId, @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT t FROM Transaction t WHERE t.accountId IN :accountIds AND t.categoryId IS NOT NULL "
+            + "AND t.status <> com.mecfin.transaction.domain.TransactionStatus.CANCELED "
+            + "AND t.type <> com.mecfin.transaction.domain.TransactionType.TRANSFER "
+            + "ORDER BY t.transactionDate DESC, t.createdAt DESC")
+    List<Transaction> findRecentCategorized(@Param("accountIds") List<UUID> accountIds, Pageable pageable);
+
+    List<Transaction> findAllByImportBatchId(UUID importBatchId);
+
     List<Transaction> findAllByRecurrenceSeriesIdAndStatusOrderByRecurrenceIndexAsc(
             UUID recurrenceSeriesId, TransactionStatus status);
 

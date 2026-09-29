@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026. Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fase 15 entregue). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -20,8 +20,8 @@ nem acesso a contas reais):
 | Relatórios (fluxo, categorias, evolução) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 12 |
 | Busca e exportação | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 12 |
 | 2FA | ✔ | ✔ | ✔ | ✔ | ✔ (Firefly) | ✔ Fase 14 |
-| Importação OFX/CSV | ✔ | ✔ | ✔ | ✔ | ✔ | ✘ Fase 15 |
-| Regras de categorização automática | parcial | ✔ | ✔ | ✔ | ✔ | ✘ Fase 15 |
+| Importação OFX/CSV | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
+| Regras de categorização automática | parcial | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
 | Open Finance (sincronização bancária) | ✔ | ✔ | ✔ (EUA) | ✔ | ✘ | só a porta (Fase 9) → Fase 16 |
 | Conta compartilhada (casal/família) | ✔ | ✔ | ✔ | ✔ | ✘ | schema pronto → Fase 17 |
 | Recuperação de senha por e-mail | ✔ | ✔ | ✔ | ✔ | ✔ | ✘ Fase 18 |
@@ -54,7 +54,7 @@ daltonismo.
 
 ## Próximas fases
 
-### Fase 15: Importação de extrato (OFX/CSV) + regras automáticas
+### Fase 15: Importação de extrato (OFX/CSV) + regras automáticas — ✔ entregue
 **Objetivo:** reduzir o lançamento manual, que é o maior motivo de abandono de
 apps de finanças.
 - Upload de OFX (padrão dos bancos brasileiros) e CSV com mapeamento de
@@ -67,6 +67,13 @@ apps de finanças.
 - **Pronto quando:** importar o mesmo arquivo duas vezes não cria nada novo; um
   extrato real de 3 bancos diferentes importa sem erro; limite de tamanho e
   validação de tipo no upload.
+
+- **Entregue:** pré-visualização sem gravar (o arquivo nunca é guardado), leitor de OFX 1.x
+  SGML e 2.x XML e de CSV com colunas/separador/formato detectados e ajustáveis, idempotência por
+  índice único (conta, external_id), linha que casa com um previsto efetiva o previsto (valor e
+  data reais) em vez de duplicar, possível duplicado de lançamento manual sinalizado, sugestão
+  de categoria por regra (a mais específica vence) ou aprendida do histórico, criar regra direto
+  da linha, histórico de importações com "desfazer".
 
 ### Fase 16: Open Finance de verdade (completa a Fase 9)
 - Adapter Pluggy para o `BankProviderClient` já existente, webhook assinado,

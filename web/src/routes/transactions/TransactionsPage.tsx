@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Download, Receipt, Search, SlidersHorizontal, X } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Download, FileUp, Receipt, Search, SlidersHorizontal, X } from "lucide-react";
 import type {
   Transaction,
   TransactionSearchParams,
@@ -153,6 +153,9 @@ export function TransactionsPage() {
         description="Receitas, despesas, transferências e parcelas — busque em todo o histórico."
         actions={
           <>
+            <Link to="/importar" className={buttonVariants({ variant: "outline" })}>
+              <FileUp /> Importar extrato
+            </Link>
             <a
               href={exportTransactionsUrl(filters)}
               download
