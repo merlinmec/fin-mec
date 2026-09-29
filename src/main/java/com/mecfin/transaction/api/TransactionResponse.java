@@ -27,6 +27,8 @@ public record TransactionResponse(
         Integer installmentTotal,
         UUID installmentGroupId,
         RecurrenceRule recurrenceRule,
+        UUID recurrenceSeriesId,
+        Integer recurrenceIndex,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -47,6 +49,8 @@ public record TransactionResponse(
                 transaction.getInstallmentTotal(),
                 transaction.getInstallmentGroupId(),
                 transaction.getRecurrenceRule(),
+                transaction.getRecurrenceSeriesId(),
+                transaction.getRecurrenceIndex(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt());
     }
