@@ -49,6 +49,32 @@ public class BankInstitution {
         this.updatedAt = now;
     }
 
+    // Fase 16: logo e cor do banco, vindos do provedor (atualizados a cada conexão).
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
+    @Column(name = "primary_color", length = 20)
+    private String primaryColor;
+
+    public void updateBranding(String name, String imageUrl, String primaryColor) {
+        if (name != null && !name.isBlank()) {
+            this.name = name.length() <= 120 ? name : name.substring(0, 120);
+        }
+        this.imageUrl = imageUrl != null && imageUrl.length() <= 500 && imageUrl.startsWith("https://") ? imageUrl : null;
+        this.primaryColor = primaryColor != null && primaryColor.matches("#?[0-9A-Fa-f]{3,8}")
+                ? (primaryColor.startsWith("#") ? primaryColor : "#" + primaryColor)
+                : null;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getPrimaryColor() {
+        return primaryColor;
+    }
+
     public UUID getId() {
         return id;
     }
