@@ -160,17 +160,12 @@ public class TransactionService {
         return transactionRepository.saveAll(legs);
     }
 
-    public Page<Transaction> search(
-            UUID accountId,
-            UUID categoryId,
-            TransactionType type,
-            TransactionStatus status,
-            YearMonth competenceMonth,
-            Pageable pageable) {
+    public Page<Transaction> search(TransactionFilter filter, Pageable pageable) {
         List<UUID> accountIds = accountService.householdAccountIds();
-        LocalDate competenceMonthDate = competenceMonth != null ? competenceMonth.atDay(1) : null;
-        return transactionRepository.search(accountIds, accountId, categoryId, type, status, competenceMonthDate,
-                pageable);
+        LocalDate competenceMonthDate = filter.competenceMonth() != null ? filter.competenceMonth().atDay(1) : null;
+        return transactionRepository.search(accountIds, filter.accountId(), filter.categoryId(), filter.type(),
+                filter.status(), competenceMonthDate, filter.from(), filter.to(), filter.likePattern(),
+                filter.minAmount(), filter.maxAmount(), pageable);
     }
 
     public Transaction get(UUID id) {

@@ -6,7 +6,9 @@ import com.mecfin.account.infra.AccountRepository;
 import com.mecfin.shared.security.CurrentUser;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,5 +55,12 @@ public class AccountService {
         return accountRepository.findAllByHouseholdId(CurrentUser.householdId()).stream()
                 .map(Account::getId)
                 .toList();
+    }
+
+    // Nome de toda conta do household, inclusive soft-deleted (mesmo motivo de
+    // householdAccountIds): relatório/exportação de lançamento antigo continua mostrando o nome.
+    public Map<UUID, String> householdAccountNames() {
+        return accountRepository.findAllByHouseholdId(CurrentUser.householdId()).stream()
+                .collect(Collectors.toMap(Account::getId, Account::getName));
     }
 }
