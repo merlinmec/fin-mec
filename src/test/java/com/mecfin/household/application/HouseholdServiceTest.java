@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.mecfin.household.domain.Household;
 import com.mecfin.household.domain.HouseholdMember;
 import com.mecfin.household.domain.HouseholdRole;
+import com.mecfin.household.infra.HouseholdDataEraser;
 import com.mecfin.household.infra.HouseholdMemberRepository;
 import com.mecfin.household.infra.HouseholdRepository;
 import com.mecfin.identity.domain.UserRegisteredEvent;
@@ -28,9 +29,12 @@ class HouseholdServiceTest {
     @Mock
     private HouseholdMemberRepository householdMemberRepository;
 
+    @Mock
+    private HouseholdDataEraser householdDataEraser;
+
     @Test
     void onUserRegisteredCreatesHouseholdWithOwnerMembership() {
-        HouseholdService service = new HouseholdService(householdRepository, householdMemberRepository);
+        HouseholdService service = new HouseholdService(householdRepository, householdMemberRepository, householdDataEraser);
         UUID userId = UUID.randomUUID();
         UUID householdId = UUID.randomUUID();
         Household household = new Household("Financeiro de user@example.com");
