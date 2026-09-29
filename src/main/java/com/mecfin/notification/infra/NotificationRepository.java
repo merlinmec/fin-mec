@@ -13,9 +13,10 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     List<Notification> findAllByHouseholdIdAndReadOrderByCreatedAtDesc(UUID householdId, boolean read);
 
-    // Chave de dedup do sync (ver uq_notifications_household_type_source) - só cria uma nova
-    // notificação quando ainda não existe uma daquele tipo exato pra aquela origem.
-    Optional<Notification> findByHouseholdIdAndTypeAndSourceId(UUID householdId, NotificationType type, UUID sourceId);
+    // Chave de dedup do sync (ver uq_notifications_household_type_source_period) - só cria uma
+    // nova notificação quando ainda não existe uma daquele tipo exato pra aquela origem e período.
+    Optional<Notification> findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(UUID householdId, NotificationType type,
+            UUID sourceId, String periodKey);
 
     // household_id faz parte do filtro (não só do "where exists"): garante que uma notificação
     // de outro household nunca é encontrada, mesmo que adivinhada (mitigação IDOR/BOLA).

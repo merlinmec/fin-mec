@@ -42,16 +42,19 @@ public class NotificationService {
     private final BillRepository billRepository;
     private final CreditCardRepository creditCardRepository;
     private final CreditCardInvoiceRepository creditCardInvoiceRepository;
+    private final List<NotificationSource> sources;
 
     public NotificationService(
             NotificationRepository notificationRepository,
             BillRepository billRepository,
             CreditCardRepository creditCardRepository,
-            CreditCardInvoiceRepository creditCardInvoiceRepository) {
+            CreditCardInvoiceRepository creditCardInvoiceRepository,
+            List<NotificationSource> sources) {
         this.notificationRepository = notificationRepository;
         this.billRepository = billRepository;
         this.creditCardRepository = creditCardRepository;
         this.creditCardInvoiceRepository = creditCardInvoiceRepository;
+        this.sources = sources;
     }
 
     @Transactional
@@ -83,6 +86,13 @@ public class NotificationService {
             }
         }
 
+        for (NotificationSource source : sources) {
+            for (NotificationSource.Candidate candidate : source.candidates(today)) {
+                upsert(householdId, candidate.type(), candidate.sourceType(), candidate.sourceId(),
+                        candidate.periodKey(), candidate.message());
+            }
+        }
+
         return list(null);
     }
 
@@ -107,10 +117,17 @@ public class NotificationService {
     private void upsert(
             UUID householdId, NotificationType type, NotificationSourceType sourceType, UUID sourceId,
             String message) {
-        if (notificationRepository.findByHouseholdIdAndTypeAndSourceId(householdId, type, sourceId).isPresent()) {
+        upsert(householdId, type, sourceType, sourceId, "", message);
+    }
+
+    private void upsert(
+            UUID householdId, NotificationType type, NotificationSourceType sourceType, UUID sourceId,
+            String periodKey, String message) {
+        if (notificationRepository.findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(householdId, type, sourceId,
+                periodKey).isPresent()) {
             return;
         }
-        notificationRepository.save(new Notification(householdId, type, sourceType, sourceId, message));
+        notificationRepository.save(new Notification(householdId, type, sourceType, sourceId, periodKey, message));
     }
 
     private String billMessage(Bill bill, NotificationType type, LocalDate today) {

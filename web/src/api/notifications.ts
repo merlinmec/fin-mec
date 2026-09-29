@@ -5,10 +5,14 @@ export type NotificationType =
   | "BILL_DUE_SOON"
   | "BILL_OVERDUE"
   | "CREDIT_CARD_INVOICE_DUE_SOON"
-  | "CREDIT_CARD_INVOICE_OVERDUE";
+  | "CREDIT_CARD_INVOICE_OVERDUE"
+  | "BUDGET_NEAR_LIMIT"
+  | "BUDGET_EXCEEDED"
+  | "CATEGORY_SPENDING_SPIKE"
+  | "CREDIT_CARD_INVOICE_ABOVE_NORMAL";
 
 /** Espelha com.mecfin.notification.domain.NotificationSourceType. */
-export type NotificationSourceType = "BILL" | "CREDIT_CARD_INVOICE";
+export type NotificationSourceType = "BILL" | "CREDIT_CARD_INVOICE" | "BUDGET" | "CATEGORY";
 
 /** Espelha com.mecfin.notification.api.NotificationResponse. */
 export interface Notification {

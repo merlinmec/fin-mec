@@ -69,7 +69,8 @@ class NotificationServiceTest {
 
     private NotificationService service() {
         return new NotificationService(
-                notificationRepository, billRepository, creditCardRepository, creditCardInvoiceRepository);
+                notificationRepository, billRepository, creditCardRepository, creditCardInvoiceRepository,
+                List.of());
     }
 
     private Bill bill(LocalDate dueDate) {
@@ -81,8 +82,8 @@ class NotificationServiceTest {
         Bill bill = bill(LocalDate.now().plusDays(2));
         when(billRepository.findAllByHouseholdIdAndStatusOrderByDueDateAsc(householdId, BillStatus.OPEN))
                 .thenReturn(List.of(bill));
-        when(notificationRepository.findByHouseholdIdAndTypeAndSourceId(
-                        eq(householdId), eq(NotificationType.BILL_DUE_SOON), any())).thenReturn(Optional.empty());
+        when(notificationRepository.findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(
+                        eq(householdId), eq(NotificationType.BILL_DUE_SOON), any(), eq(""))).thenReturn(Optional.empty());
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(notificationRepository.findAllByHouseholdIdOrderByCreatedAtDesc(householdId)).thenReturn(List.of());
 
@@ -96,8 +97,8 @@ class NotificationServiceTest {
         Bill bill = bill(LocalDate.now().minusDays(1));
         when(billRepository.findAllByHouseholdIdAndStatusOrderByDueDateAsc(householdId, BillStatus.OPEN))
                 .thenReturn(List.of(bill));
-        when(notificationRepository.findByHouseholdIdAndTypeAndSourceId(
-                        eq(householdId), eq(NotificationType.BILL_OVERDUE), any())).thenReturn(Optional.empty());
+        when(notificationRepository.findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(
+                        eq(householdId), eq(NotificationType.BILL_OVERDUE), any(), eq(""))).thenReturn(Optional.empty());
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> {
             Notification saved = invocation.getArgument(0);
             assertThat(saved.getType()).isEqualTo(NotificationType.BILL_OVERDUE);
@@ -128,8 +129,8 @@ class NotificationServiceTest {
         Bill bill = bill(LocalDate.now().plusDays(1));
         when(billRepository.findAllByHouseholdIdAndStatusOrderByDueDateAsc(householdId, BillStatus.OPEN))
                 .thenReturn(List.of(bill));
-        when(notificationRepository.findByHouseholdIdAndTypeAndSourceId(
-                        eq(householdId), eq(NotificationType.BILL_DUE_SOON), any()))
+        when(notificationRepository.findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(
+                        eq(householdId), eq(NotificationType.BILL_DUE_SOON), any(), eq("")))
                 .thenReturn(Optional.of(new Notification(
                         householdId, NotificationType.BILL_DUE_SOON, NotificationSourceType.BILL, bill.getId(),
                         "já existe")));
@@ -152,8 +153,8 @@ class NotificationServiceTest {
                 .thenReturn(List.of(card));
         when(creditCardInvoiceRepository.findAllByCreditCardIdOrderByReferenceMonthDesc(card.getId()))
                 .thenReturn(List.of(invoice));
-        when(notificationRepository.findByHouseholdIdAndTypeAndSourceId(
-                        eq(householdId), eq(NotificationType.CREDIT_CARD_INVOICE_DUE_SOON), eq(invoice.getId())))
+        when(notificationRepository.findByHouseholdIdAndTypeAndSourceIdAndPeriodKey(
+                        eq(householdId), eq(NotificationType.CREDIT_CARD_INVOICE_DUE_SOON), eq(invoice.getId()), eq("")))
                 .thenReturn(Optional.empty());
         when(notificationRepository.save(any(Notification.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(notificationRepository.findAllByHouseholdIdOrderByCreatedAtDesc(householdId)).thenReturn(List.of());
