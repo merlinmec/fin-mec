@@ -26,6 +26,7 @@ public class HouseholdDataEraser {
     // remove as duas no mesmo comando, e a FK (NO ACTION) só é checada no fim do comando.
     private static final List<String> STATEMENTS = List.of(
             "DELETE FROM notifications WHERE household_id = :h",
+            "DELETE FROM bank_account_links WHERE household_id = :h",
             "DELETE FROM bank_connections WHERE household_id = :h",
             "DELETE FROM budgets WHERE household_id = :h",
             "DELETE FROM bills WHERE household_id = :h",

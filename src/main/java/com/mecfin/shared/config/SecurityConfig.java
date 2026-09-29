@@ -41,10 +41,12 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // Terceiros permitidos (Fase 16): o widget Pluggy Connect, que abre em iframe, e os logos dos
+    // bancos, servidos pelo CDN da Pluggy.
     static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; "
-            + "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; "
-            + "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; "
-            + "frame-ancestors 'none'";
+            + "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://cdn.pluggy.ai; "
+            + "font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            + "form-action 'self'; frame-ancestors 'none'; frame-src https://connect.pluggy.ai";
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, RestAuthenticationEntryPoint restAuthenticationEntryPoint,
@@ -59,6 +61,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/login/mfa",
                                 "/api/auth/password/forgot", "/api/auth/password/reset")
+                        .permitAll()
+                        // Webhook do provedor bancário: autenticado pelo segredo na URL (ver
+                        // PluggyWebhookController), não por sessão.
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/pluggy/*")
                         .permitAll()
                         // Tudo sob /api/** que nao caiu numa regra acima precisa de sessao. Fora de
                         // /api/** e o shell do SPA (index.html, JS/CSS, e qualquer rota so do client-
@@ -77,7 +83,9 @@ public class SecurityConfig {
                 // um prefixo de path em vez de context-path, justamente pra nao arrastar o cookie/o
                 // resto do app pra debaixo de /api), mas o default do CookieCsrfTokenRepository ainda
                 // depende do contexto da requisicao, entao mante-lo explicito evita ambiguidade.
-                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
+                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository)
+                        // Chamada servidor-a-servidor (sem cookie de sessão): CSRF não se aplica.
+                        .ignoringRequestMatchers("/api/webhooks/**"))
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 // O CsrfFilter roda antes do ExceptionTranslationFilter na cadeia e trata a
                 // propria excecao de CSRF invalido (nao deixa borbulhar) - por isso um request

@@ -3,6 +3,7 @@ package com.mecfin.shared.web;
 import com.mecfin.shared.exception.ConflictException;
 import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.shared.exception.TooManyRequestsException;
+import com.mecfin.shared.exception.UpstreamUnavailableException;
 import com.mecfin.shared.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Unauthorized");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    @ExceptionHandler(UpstreamUnavailableException.class)
+    public ResponseEntity<ProblemDetail> handleUpstream(UpstreamUnavailableException ex) {
+        log.warn("Serviço externo indisponível: {}", ex.getMessage(), ex.getCause());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(problem);
     }
 
     @ExceptionHandler(TooManyRequestsException.class)

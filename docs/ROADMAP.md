@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026 (Fases 15 e 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fases 15, 16 e 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -22,7 +22,7 @@ nem acesso a contas reais):
 | 2FA | ✔ | ✔ | ✔ | ✔ | ✔ (Firefly) | ✔ Fase 14 |
 | Importação OFX/CSV | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
 | Regras de categorização automática | parcial | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
-| Open Finance (sincronização bancária) | ✔ | ✔ | ✔ (EUA) | ✔ | ✘ | só a porta (Fase 9) → Fase 16 |
+| Open Finance (sincronização bancária) | ✔ | ✔ | ✔ (EUA) | ✔ | ✘ | ✔ Fase 16 (Pluggy) |
 | Conta compartilhada (casal/família) | ✔ | ✔ | ✔ | ✔ | ✘ | schema pronto → Fase 17 |
 | Recuperação de senha por e-mail | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 18 |
 | App mobile / PWA | nativo | nativo | nativo | nativo | PWA | responsivo → Fase 20 |
@@ -75,13 +75,30 @@ apps de finanças.
   de categoria por regra (a mais específica vence) ou aprendida do histórico, criar regra direto
   da linha, histórico de importações com "desfazer".
 
-### Fase 16: Open Finance de verdade (completa a Fase 9)
-- Adapter Pluggy para o `BankProviderClient` já existente, webhook assinado,
+### Fase 16: Open Finance de verdade (completa a Fase 9) — ✔ entregue (falta validar no sandbox com credenciais reais)
+- Adapter Pluggy para o `BankProviderClient` já existente, webhook,
   sincronização incremental reaproveitando a deduplicação da Fase 15.
-- Segredos só em variável de ambiente, token de conexão cifrado com o
-  `SecretCipher`.
 - **Pronto quando:** conta sandbox sincroniza, reconecta após expirar o
   consentimento e nunca duplica lançamento.
+
+- **Entregue:** o usuário conecta pelo widget oficial (Pluggy Connect, em iframe; as credenciais do
+  banco nunca passam pelo fin-mec e nenhum token do banco é guardado, só o id da conexão). Cada
+  conta do banco vira "criar conta nova" (com saldo inicial calculado para bater com o saldo do
+  banco), "vincular a uma existente" ou "ignorar". A sincronização (botão, webhook e job diário com
+  ShedLock) importa só lançamentos liquidados — pendentes podem mudar de id — pelo mesmo motor da
+  Fase 15: id do banco como `external_id`, efetivação de previstos, lote com "desfazer".
+  Conexão com credencial expirada vira "Reconectar" (widget em modo atualização). Provedor fora
+  do ar responde 502 com mensagem clara, sem derrubar nada.
+- **Mudança de plano, com motivo:** o roadmap falava em "webhook assinado", mas a Pluggy não assina
+  webhooks. No lugar: segredo aleatório no caminho da URL (comparação em tempo constante; errado =
+  404) e o corpo do webhook nunca é confiado — ele só dispara uma sincronização que busca tudo na
+  API com a chave do servidor. Pior caso de um segredo vazado: sincronizações extras.
+- **Segurança verificada em teste:** conexão de outro household é recusada (o `clientUserId` do
+  item precisa ser o household de quem registra), cursor de paginação para outro host é recusado
+  (SSRF), `itemId` validado antes de entrar no caminho da URL, CSP liberando só
+  `connect.pluggy.ai` (iframe) e `cdn.pluggy.ai` (logos).
+- **Para ativar:** `PLUGGY_CLIENT_ID`/`PLUGGY_CLIENT_SECRET` (dashboard.pluggy.ai); sem eles a tela
+  mostra como ativar e aponta para a importação de arquivo.
 
 ### Fase 17: Household compartilhado
 - Convite por e-mail com token de uso único, papéis OWNER/MEMBER já
