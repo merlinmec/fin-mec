@@ -36,57 +36,65 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="grid min-h-dvh place-items-center p-6">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm">
-        <h1 className="text-lg font-semibold tracking-tight">Criar conta</h1>
-        <p className="mt-1 text-sm text-muted-foreground">fin-mec — controle financeiro pessoal.</p>
+    <div className="grid min-h-dvh place-items-center bg-muted/40 p-6">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+            f
+          </span>
+          <span className="text-lg font-semibold tracking-tight">fin-mec</span>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-6 text-card-foreground shadow-sm">
+          <h1 className="text-lg font-semibold tracking-tight">Criar conta</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Controle financeiro pessoal.</p>
 
-        <form className="mt-5 space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-              {...register("email")}
-            />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-          </div>
+          <form className="mt-5 space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                aria-invalid={!!errors.email}
+                {...register("email")}
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              aria-invalid={!!errors.password}
-              {...register("password")}
-            />
-            {errors.password ? (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Mínimo de 10 caracteres.</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                aria-invalid={!!errors.password}
+                {...register("password")}
+              />
+              {errors.password ? (
+                <p className="text-sm text-destructive">{errors.password.message}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Mínimo de 10 caracteres.</p>
+              )}
+            </div>
+
+            {formError && (
+              <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {formError}
+              </p>
             )}
-          </div>
 
-          {formError && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {formError}
-            </p>
-          )}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Criando conta…" : "Criar conta"}
+            </Button>
+          </form>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Criando conta…" : "Criar conta"}
-          </Button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Já tem conta?{" "}
-          <Link to="/login" className="font-medium text-primary hover:underline">
-            Entrar
-          </Link>
-        </p>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Já tem conta?{" "}
+            <Link to="/login" className="font-medium text-primary hover:underline">
+              Entrar
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
