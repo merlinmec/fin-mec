@@ -21,5 +21,21 @@ public record CreateTransactionRequest(
         @NotNull LocalDate transactionDate,
         @NotNull YearMonth competenceMonth,
         TransactionStatus status,
-        RecurrenceRule recurrenceRule) {
+        RecurrenceRule recurrenceRule,
+        // Só com recurrenceRule: último dia em que o fixo ainda ocorre (null = sem fim).
+        LocalDate recurrenceEndDate) {
+
+    public CreateTransactionRequest(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status,
+            RecurrenceRule recurrenceRule) {
+        this(accountId, categoryId, type, amount, description, transactionDate, competenceMonth, status,
+                recurrenceRule, null);
+    }
 }
