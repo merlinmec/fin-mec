@@ -84,7 +84,13 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
 
-  if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+  // FormData (upload) fica sem Content-Type: o navegador define multipart/form-data com o boundary.
+  if (
+    init.body !== undefined &&
+    init.body !== null &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   if (!SAFE_METHODS.has(method)) {

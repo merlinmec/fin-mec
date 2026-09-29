@@ -241,6 +241,43 @@ public class TransactionService {
         return transaction;
     }
 
+    /** Lançamento criado a partir de uma linha de extrato importado (Fase 15). */
+    @Transactional
+    public Transaction createImported(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            String externalId,
+            UUID importBatchId,
+            Collection<UUID> tagIds) {
+        validateAccount(accountId);
+        validateCategory(categoryId);
+        Transaction transaction = Transaction.imported(accountId, categoryId, type, amount, description,
+                transactionDate, externalId, importBatchId);
+        transaction.replaceTags(tagService.requireOwned(tagIds));
+        return transactionRepository.save(transaction);
+    }
+
+    /**
+     * Efetiva um previsto a partir de uma linha do extrato. Devolve false (sem erro) quando o
+     * previsto não serve mais — outra aba já o efetivou, foi cancelado, é de outra conta — e o
+     * chamador cria um lançamento novo em vez de perder a linha.
+     */
+    @Transactional
+    public boolean confirmFromStatement(UUID pendingId, UUID accountId, BigDecimal amount, LocalDate date,
+            String externalId) {
+        return transactionRepository.findByIdAndAccountIdIn(pendingId, accountService.householdAccountIds())
+                .filter(t -> t.getAccountId().equals(accountId) && t.getStatus() == TransactionStatus.PENDING)
+                .map(t -> {
+                    t.confirmFromStatement(amount, date, externalId);
+                    return true;
+                })
+                .orElse(false);
+    }
+
     // Efetiva um lançamento previsto (tipicamente uma ocorrência futura de um fixo).
     @Transactional
     public Transaction confirm(UUID id, BigDecimal actualAmount, LocalDate actualDate) {
