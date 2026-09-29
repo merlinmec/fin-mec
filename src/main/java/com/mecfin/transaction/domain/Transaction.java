@@ -5,6 +5,7 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -22,6 +23,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Lançamento (receita/despesa/transferência). Referencia account e category só por id
@@ -41,6 +44,7 @@ import org.hibernate.annotations.BatchSize;
  */
 @Entity
 @Table(name = "transactions")
+@EntityListeners(AuditingEntityListener.class)
 public class Transaction {
 
     @Id
@@ -130,6 +134,11 @@ public class Transaction {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // Quem lançou (Fase 17); nulo = sistema. Preenchido pelo JpaAuditingConfig.
+    @CreatedBy
+    @Column(name = "created_by", updatable = false)
+    private UUID createdBy;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -433,6 +442,10 @@ public class Transaction {
 
     public Set<UUID> getTagIds() {
         return Collections.unmodifiableSet(tagIds);
+    }
+
+    public UUID getCreatedBy() {
+        return createdBy;
     }
 
     public Instant getCreatedAt() {
