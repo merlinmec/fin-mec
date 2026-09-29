@@ -9,6 +9,7 @@ import { LoginPage } from "./LoginPage";
 vi.mock("@/api/auth", () => ({
   fetchCurrentUser: vi.fn(),
   loginUser: vi.fn(),
+  loginMfa: vi.fn(),
   registerUser: vi.fn(),
   logoutUser: vi.fn(),
 }));
@@ -16,7 +17,7 @@ vi.mock("@/api/csrf", () => ({
   bootstrapCsrf: vi.fn(),
 }));
 
-import { fetchCurrentUser, loginUser } from "@/api/auth";
+import { fetchCurrentUser, loginMfa, loginUser } from "@/api/auth";
 import { bootstrapCsrf } from "@/api/csrf";
 
 function renderLoginPage() {
@@ -38,7 +39,12 @@ describe("LoginPage", () => {
 
   it("envia email e senha pro backend ao entrar com credenciais validas", async () => {
     const user = userEvent.setup();
-    vi.mocked(loginUser).mockResolvedValue({ id: "1", email: "joao@example.com", createdAt: "2026-01-01T00:00:00Z" });
+    vi.mocked(loginUser).mockResolvedValue({
+      id: "1",
+      email: "joao@example.com",
+      createdAt: "2026-01-01T00:00:00Z",
+      mfaEnabled: false,
+    });
 
     renderLoginPage();
     await waitFor(() => expect(fetchCurrentUser).toHaveBeenCalled());
@@ -48,13 +54,18 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
     await waitFor(() => {
-      expect(loginUser).toHaveBeenCalledWith({ email: "joao@example.com", password: "senhaSuperSegura123" });
+      expect(loginUser).toHaveBeenCalledWith({
+        email: "joao@example.com",
+        password: "senhaSuperSegura123",
+      });
     });
   });
 
   it("mostra o detail do backend quando as credenciais sao invalidas", async () => {
     const user = userEvent.setup();
-    vi.mocked(loginUser).mockRejectedValue(new ApiError(401, { detail: "E-mail ou senha inválidos" }));
+    vi.mocked(loginUser).mockRejectedValue(
+      new ApiError(401, { detail: "E-mail ou senha inválidos" }),
+    );
 
     renderLoginPage();
     await waitFor(() => expect(fetchCurrentUser).toHaveBeenCalled());
@@ -78,5 +89,31 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("E-mail inválido")).toBeInTheDocument();
     expect(loginUser).not.toHaveBeenCalled();
+  });
+
+  it("pede o codigo do 2FA quando a conta exige e so entao conclui o login", async () => {
+    const user = userEvent.setup();
+    vi.mocked(loginUser).mockResolvedValue({ mfaRequired: true });
+    vi.mocked(loginMfa).mockResolvedValue({
+      id: "1",
+      email: "joao@example.com",
+      createdAt: "2026-01-01T00:00:00Z",
+      mfaEnabled: true,
+    });
+
+    renderLoginPage();
+    await waitFor(() => expect(fetchCurrentUser).toHaveBeenCalled());
+
+    await user.type(screen.getByLabelText("E-mail"), "joao@example.com");
+    await user.type(screen.getByLabelText("Senha"), "senhaSuperSegura123");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+
+    expect(await screen.findByText("Verificação em duas etapas")).toBeInTheDocument();
+    expect(loginMfa).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Código"), "123456");
+    await user.click(screen.getByRole("button", { name: "Verificar e entrar" }));
+
+    await waitFor(() => expect(loginMfa).toHaveBeenCalledWith("123456"));
   });
 });

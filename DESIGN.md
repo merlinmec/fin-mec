@@ -129,9 +129,12 @@ verde-água "diferente") pra outro propósito.
 
 ## Typography
 
-**Body Font:** system-ui stack (sem fonte customizada — texto financeiro
-denso se beneficia da fonte nativa da plataforma, que o usuário já lê
-bem, em vez de uma fonte de exibição).
+**Body Font:** Manrope Variable, hospedada no próprio bundle
+(`@fontsource-variable/manrope`, sem CDN — a CSP do backend só permite
+fonte da própria origem). Desde a FE-10: sans humanista de desenho
+arredondado que casa com o caráter "amigável" da linguagem Organizze e tem
+algarismos bem desenhados; todo número em lista/tabela usa a classe
+`.num` (tabular-nums) para as colunas alinharem.
 
 **Character:** utilitária e direta — a hierarquia vem de peso e tamanho,
 não de troca de família tipográfica.
@@ -234,10 +237,34 @@ conta/categoria deveria aparecer como texto puro, sempre com esse círculo
   tiles maskable da tela (um único toggle global, não um por tile).
 
 ### Navigation
-Topbar full-bleed com fundo `--primary`. Links horizontais (`rounded-full`,
-texto `primary-foreground/80`, ativo = `bg-white/15` + texto sólido) só
-em `lg+`. Abaixo disso, um menu suspenso abre por baixo da topbar com os
-mesmos links empilhados verticalmente.
+Topbar full-bleed com fundo `--topbar` (= verde de marca no tema claro; no
+escuro um verde profundo `oklch(0.3 0.065 152)` com texto claro — o
+`--primary` claro do tema escuro como faixa inteira ofuscava e exigia texto
+escuro sobre verde). Em `lg+`: 6 links principais + popover "Mais"
+(Contas a pagar, Orçamento, Categorias, Configurações), busca/paleta
+(Ctrl/⌘+K), botão branco "Novo" e menu do usuário (tema, ocultar saldos,
+segurança, sair). Abaixo de `lg`: barra inferior fixa (Início, Lançamentos,
+botão flutuante de lançamento no centro, Relatórios, Mais → folha com todas
+as seções), como nos apps de finanças de uso diário.
+
+### Gráficos (FE-10)
+Recharts, com cores só por tokens `--chart-*` validados pelo script da
+skill de dataviz contra a superfície de card de cada tema:
+- `--chart-income` / `--chart-expense`: o par receita/despesa se separa por
+  **luminosidade** (claro: verde escuro 0.48 × coral 0.74; escuro: verde
+  0.67 × vermelho 0.50). Verde e vermelho de mesma luminosidade dão ΔE 5
+  para deuteranopia — reprovado.
+- Nunca dois eixos Y: fluxo de caixa (barras agrupadas) e evolução do saldo
+  (área, série única) são gráficos separados.
+- Todo gráfico tem tooltip no hover e alternância "Ver tabela" (exigência
+  da validação no tema escuro, onde a despesa fica abaixo de 3:1 contra o
+  card, e útil para leitor de tela sempre).
+- Texto de gráfico usa tokens de texto, nunca a cor da série.
+
+### Panel
+`components/ui/panel.tsx` substitui os "DashboardCard" inline por tela:
+título + descrição + ação no canto (link "Ver tudo", seletor). `PageHeader`
+padroniza título (2xl bold) + descrição + ações de cada rota.
 
 ## Do's and Don'ts
 
