@@ -1,6 +1,7 @@
 package com.mecfin.transaction.api;
 
 import com.mecfin.shared.web.PagedResponse;
+import com.mecfin.transaction.application.EditScope;
 import com.mecfin.transaction.application.TransactionService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionStatus;
@@ -48,7 +49,8 @@ public class TransactionController {
                 request.transactionDate(),
                 request.competenceMonth(),
                 request.status(),
-                request.recurrenceRule());
+                request.recurrenceRule(),
+                request.recurrenceEndDate());
         return TransactionResponse.from(transaction);
     }
 
@@ -111,8 +113,13 @@ public class TransactionController {
         return TransactionResponse.from(transactionService.get(id));
     }
 
+    // scope só importa para ocorrência de lançamento fixo (ver EditScope); default THIS mantém o
+    // contrato anterior para quem não manda o parâmetro.
     @PutMapping("/{id}")
-    public TransactionResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTransactionRequest request) {
+    public TransactionResponse update(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "THIS") EditScope scope,
+            @Valid @RequestBody UpdateTransactionRequest request) {
         Transaction transaction = transactionService.update(
                 id,
                 request.categoryId(),
@@ -122,8 +129,17 @@ public class TransactionController {
                 request.transactionDate(),
                 request.competenceMonth(),
                 request.status(),
-                request.recurrenceRule());
+                request.recurrenceRule(),
+                scope);
         return TransactionResponse.from(transaction);
+    }
+
+    // Body opcional: sem ele efetiva com o valor e a data previstos.
+    @PostMapping("/{id}/confirm")
+    public TransactionResponse confirm(
+            @PathVariable UUID id, @Valid @RequestBody(required = false) ConfirmTransactionRequest request) {
+        ConfirmTransactionRequest body = request != null ? request : new ConfirmTransactionRequest(null, null);
+        return TransactionResponse.from(transactionService.confirm(id, body.amount(), body.transactionDate()));
     }
 
     // Nunca hard-deleta (ver Transaction.cancel()) - o verbo HTTP continua DELETE porque, do
@@ -132,8 +148,8 @@ public class TransactionController {
     // pareada quando é transferência (TransactionService.cancel).
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancel(@PathVariable UUID id) {
-        transactionService.cancel(id);
+    public void cancel(@PathVariable UUID id, @RequestParam(defaultValue = "THIS") EditScope scope) {
+        transactionService.cancel(id, scope);
     }
 
     private YearMonth parseCompetenceMonth(String value) {

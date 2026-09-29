@@ -73,20 +73,27 @@ public class DashboardService {
                 accountIds, competenceMonthDate, TransactionStatus.POSTED, TransactionType.INCOME);
         BigDecimal monthlyExpense = transactionRepository.sumAmountByMonth(
                 accountIds, competenceMonthDate, TransactionStatus.POSTED, TransactionType.EXPENSE);
+        BigDecimal pendingIncome = transactionRepository.sumAmountByMonth(
+                accountIds, competenceMonthDate, TransactionStatus.PENDING, TransactionType.INCOME);
+        BigDecimal pendingExpense = transactionRepository.sumAmountByMonth(
+                accountIds, competenceMonthDate, TransactionStatus.PENDING, TransactionType.EXPENSE);
 
         List<BillView> openBills = billService.list(BillStatus.OPEN);
         List<BillView> upcomingBills = openBills.stream()
                 .sorted(Comparator.comparing(view -> view.bill().getDueDate()))
                 .limit(UPCOMING_BILLS_LIMIT)
                 .toList();
-        BigDecimal projectedBalance = totalAvailable.subtract(pendingBillsUntil(openBills, referenceMonth.atEndOfMonth()));
+        LocalDate endOfMonth = referenceMonth.atEndOfMonth();
+        BigDecimal projectedBalance = totalAvailable
+                .subtract(pendingBillsUntil(openBills, endOfMonth))
+                .add(pendingSignedUntil(accountIds, endOfMonth));
 
         List<CategoryExpense> expensesByCategory = buildExpensesByCategory(accountIds, competenceMonthDate);
         List<BudgetView> budgets = budgetService.list(referenceMonth);
 
         return new DashboardSummary(
                 referenceMonth, accountBalances, totalLedger, totalAvailable, monthlyIncome, monthlyExpense,
-                projectedBalance, upcomingBills, expensesByCategory, budgets);
+                pendingIncome, pendingExpense, projectedBalance, upcomingBills, expensesByCategory, budgets);
     }
 
     private List<AccountBalance> buildAccountBalances(List<Account> accounts, List<UUID> accountIds) {
@@ -132,6 +139,14 @@ public class DashboardService {
         return openBills.stream()
                 .filter(view -> !view.bill().getDueDate().isAfter(endDate))
                 .map(view -> view.bill().getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // Lançamentos previstos (PENDING, na prática ocorrências futuras de fixos) até a data:
+    // receita soma, despesa subtrai, transferência se anula entre as duas pernas.
+    private BigDecimal pendingSignedUntil(List<UUID> accountIds, LocalDate endDate) {
+        return transactionRepository.sumSignedAmountsByAccount(accountIds, TransactionStatus.PENDING, endDate).stream()
+                .map(AccountBalanceProjection::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

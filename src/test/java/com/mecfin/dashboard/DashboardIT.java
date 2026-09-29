@@ -140,7 +140,8 @@ class DashboardIT {
         // não conta pro disponível hoje (data futura), mas conta pro saldo contábil.
         createTransaction(user, accountId, categoryId, TransactionType.EXPENSE, new BigDecimal("100.00"),
                 TransactionStatus.POSTED, LocalDate.now().plusDays(30), YearMonth.from(LocalDate.now().plusDays(30)));
-        // não conta em nada - PENDING.
+        // PENDING: fora do saldo e do realizado do mês, mas entra em pendingExpense e na previsão
+        // (regra da Fase 11 - lançamento previsto, tipicamente ocorrência futura de um fixo).
         createTransaction(user, accountId, categoryId, TransactionType.EXPENSE, new BigDecimal("999.00"),
                 TransactionStatus.PENDING, LocalDate.of(2026, 8, 12), month);
 
@@ -190,8 +191,12 @@ class DashboardIT {
         assertThat(body.upcomingBills()).hasSize(1);
         assertThat(body.upcomingBills().get(0).description()).isEqualTo("Aluguel");
 
+        assertThat(body.pendingExpense()).isEqualByComparingTo("999.00");
+        assertThat(body.pendingIncome()).isEqualByComparingTo("0.00");
+
         // previsao: saldo disponivel (3600) - bill OPEN vencendo ate o fim do mes (1200)
-        assertThat(body.projectedBalance()).isEqualByComparingTo("2400.00");
+        // - lancamento PENDING ate o fim do mes (999)
+        assertThat(body.projectedBalance()).isEqualByComparingTo("1401.00");
 
         assertThat(body.expensesByCategory()).hasSize(1);
         assertThat(body.expensesByCategory().get(0).amount()).isEqualByComparingTo("400.00");
