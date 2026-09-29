@@ -67,3 +67,13 @@ jobs:
         if: steps.changes.outputs.web == 'true'
         working-directory: web
         run: npm run build
+
+  # Garante que a imagem de produção continua buildando (Dockerfile, build do SPA dentro do
+  # container, empacotamento do jar) — quebrar isso só apareceria no dia do deploy.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem de produção
+        run: docker build -t fin-mec:ci .

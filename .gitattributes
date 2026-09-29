@@ -1,0 +1,6 @@
+# Scripts e configs que rodam dentro de containers Linux: sempre LF, mesmo clonando no Windows
+# (com CRLF o bash falha em "" e o Caddy lê o Caddyfile errado).
+*.sh text eol=lf
+deploy/Caddyfile text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf

@@ -1,0 +1,11 @@
+# HTTPS automático: com um domínio público, o Caddy obtém e renova o certificado Let's Encrypt
+# sozinho; com DOMAIN=localhost (teste local) usa a CA interna dele.
+# Os cabeçalhos de segurança (CSP, HSTS, etc.) vêm da própria aplicação — ver SecurityConfig.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8080
+	log {
+		output stdout
+		format json
+	}
+}
