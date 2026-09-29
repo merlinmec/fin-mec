@@ -36,6 +36,25 @@ export default defineConfig({
     // sempre gerada, nunca editada a mao.
     outDir: "../src/main/resources/static",
     emptyOutDir: true,
+    // Bibliotecas em chunks próprios: mudam bem menos que o código do app, então o
+    // navegador reaproveita o cache delas entre deploys.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          charts: ["recharts"],
+          ui: [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "cmdk",
+            "lucide-react",
+            "sonner",
+          ],
+          data: ["@tanstack/react-query", "react-hook-form", "@hookform/resolvers", "zod"],
+        },
+      },
+    },
   },
   // A referencia de tipos no topo do arquivo e o que faz `test` abaixo tipar
   // certo (senao o defineConfig do vite puro nao reconhece a chave) — um so
