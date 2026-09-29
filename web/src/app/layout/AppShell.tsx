@@ -8,6 +8,7 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  FileUp,
   LayoutDashboard,
   ListOrdered,
   LogOut,
@@ -59,6 +60,7 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const MORE_NAV: NavItem[] = [
+  { label: "Importar extrato", to: "/importar", icon: FileUp },
   { label: "Contas a pagar", to: "/contas-a-pagar", icon: CalendarClock },
   { label: "Orçamento", to: "/orcamento", icon: PiggyBank },
   { label: "Categorias", to: "/categorias", icon: Shapes },
