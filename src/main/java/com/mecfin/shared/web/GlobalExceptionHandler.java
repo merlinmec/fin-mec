@@ -3,6 +3,7 @@ package com.mecfin.shared.web;
 import com.mecfin.shared.exception.ConflictException;
 import com.mecfin.shared.exception.ForbiddenException;
 import com.mecfin.shared.exception.NotFoundException;
+import com.mecfin.shared.exception.PayloadTooLargeException;
 import com.mecfin.shared.exception.TooManyRequestsException;
 import com.mecfin.shared.exception.UpstreamUnavailableException;
 import com.mecfin.shared.exception.UnauthorizedException;
@@ -65,6 +66,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
         problem.setTitle("Forbidden");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler(PayloadTooLargeException.class)
+    public ResponseEntity<ProblemDetail> handlePayloadTooLarge(PayloadTooLargeException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage());
+        problem.setTitle("Payload Too Large");
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(problem);
     }
 
     @ExceptionHandler(NotFoundException.class)

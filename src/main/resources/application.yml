@@ -38,8 +38,10 @@ spring:
   # Upload de extrato (Fase 15): um OFX/CSV de um ano inteiro fica bem abaixo de 2 MB.
   servlet:
     multipart:
-      max-file-size: 2MB
-      max-request-size: 3MB
+      # Teto global = o maior limite por recurso (comprovante, 5 MB). Cada recurso confere o
+      # seu: a importação de extrato continua em 2 MB (ImportController).
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 server:
   # Atrás do proxy (Caddy) o IP real vem em X-Forwarded-For. "native" usa o RemoteIpValve do

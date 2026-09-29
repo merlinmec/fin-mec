@@ -3,8 +3,10 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { App } from "./App";
 import { applyStoredTheme } from "./lib/theme";
+import { startPwa } from "./app/pwa-register";
 
 applyStoredTheme();
+startPwa();
 
 const root = document.getElementById("root");
 if (!root) {
