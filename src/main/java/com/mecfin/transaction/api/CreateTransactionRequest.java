@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 public record CreateTransactionRequest(
@@ -23,7 +24,8 @@ public record CreateTransactionRequest(
         TransactionStatus status,
         RecurrenceRule recurrenceRule,
         // Só com recurrenceRule: último dia em que o fixo ainda ocorre (null = sem fim).
-        LocalDate recurrenceEndDate) {
+        LocalDate recurrenceEndDate,
+        @Size(max = 10) List<UUID> tagIds) {
 
     public CreateTransactionRequest(
             UUID accountId,
@@ -36,6 +38,6 @@ public record CreateTransactionRequest(
             TransactionStatus status,
             RecurrenceRule recurrenceRule) {
         this(accountId, categoryId, type, amount, description, transactionDate, competenceMonth, status,
-                recurrenceRule, null);
+                recurrenceRule, null, null);
     }
 }

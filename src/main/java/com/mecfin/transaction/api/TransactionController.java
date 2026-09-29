@@ -62,7 +62,8 @@ public class TransactionController {
                 request.competenceMonth(),
                 request.status(),
                 request.recurrenceRule(),
-                request.recurrenceEndDate());
+                request.recurrenceEndDate(),
+                request.tagIds());
         return TransactionResponse.from(transaction);
     }
 
@@ -93,7 +94,8 @@ public class TransactionController {
                         request.description(),
                         request.firstTransactionDate(),
                         request.firstCompetenceMonth(),
-                        request.installments())
+                        request.installments(),
+                        request.tagIds())
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
@@ -116,10 +118,11 @@ public class TransactionController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) UUID tagId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
-                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount);
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount, tagId);
         Page<Transaction> result = transactionService.search(
                 filter, PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE)));
         return PagedResponse.from(result.map(TransactionResponse::from));
@@ -139,9 +142,10 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) BigDecimal minAmount,
-            @RequestParam(required = false) BigDecimal maxAmount) {
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) UUID tagId) {
         TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
-                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount);
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount, tagId);
         byte[] csv = csvExporter.export(filter);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
@@ -174,7 +178,8 @@ public class TransactionController {
                 request.competenceMonth(),
                 request.status(),
                 request.recurrenceRule(),
-                scope);
+                scope,
+                request.tagIds());
         return TransactionResponse.from(transaction);
     }
 

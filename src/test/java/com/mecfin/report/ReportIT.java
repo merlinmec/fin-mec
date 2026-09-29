@@ -215,9 +215,9 @@ class ReportIT {
         assertThat(body).startsWith(0xEF, 0xBB, 0xBF);
         String csv = new String(body, StandardCharsets.UTF_8).substring(1);
         String[] lines = csv.split("\r\n");
-        assertThat(lines[0]).isEqualTo("Data;Competência;Descrição;Categoria;Conta;Tipo;Situação;Valor");
+        assertThat(lines[0]).isEqualTo("Data;Competência;Descrição;Categoria;Conta;Tipo;Situação;Valor;Tags");
         assertThat(lines).hasSize(4);
-        assertThat(lines[1]).isEqualTo("10/08/2026;08/2026;\"Aluguel\";\"Moradia\";\"Corrente\";Despesa;Efetivado;-1000,00");
+        assertThat(lines[1]).isEqualTo("10/08/2026;08/2026;\"Aluguel\";\"Moradia\";\"Corrente\";Despesa;Efetivado;-1000,00;\"\"");
     }
 
     @Test

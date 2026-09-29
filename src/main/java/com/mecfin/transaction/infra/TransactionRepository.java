@@ -39,7 +39,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             + "AND (CAST(:toDate AS date) IS NULL OR t.transactionDate <= :toDate) "
             + "AND (:likePattern IS NULL OR LOWER(t.description) LIKE :likePattern ESCAPE '!') "
             + "AND (:minAmount IS NULL OR t.amount >= :minAmount) "
-            + "AND (:maxAmount IS NULL OR t.amount <= :maxAmount)";
+            + "AND (:maxAmount IS NULL OR t.amount <= :maxAmount) "
+            + "AND (:tagId IS NULL OR :tagId MEMBER OF t.tagIds)";
 
     @Query(value = "SELECT t FROM Transaction t WHERE " + SEARCH_PREDICATE
                     + " ORDER BY t.transactionDate DESC, t.createdAt DESC",
@@ -56,6 +57,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("likePattern") String likePattern,
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
+            @Param("tagId") UUID tagId,
             Pageable pageable);
 
     Optional<Transaction> findByIdAndAccountIdIn(UUID id, List<UUID> accountIds);
