@@ -3,8 +3,10 @@ package com.mecfin.household.application;
 import com.mecfin.household.domain.Household;
 import com.mecfin.household.domain.HouseholdMember;
 import com.mecfin.household.domain.HouseholdRole;
+import com.mecfin.household.infra.HouseholdDataEraser;
 import com.mecfin.household.infra.HouseholdMemberRepository;
 import com.mecfin.household.infra.HouseholdRepository;
+import com.mecfin.identity.domain.UserDeletingEvent;
 import com.mecfin.identity.domain.UserRegisteredEvent;
 import java.util.UUID;
 import org.springframework.context.event.EventListener;
@@ -16,10 +18,31 @@ public class HouseholdService {
 
     private final HouseholdRepository householdRepository;
     private final HouseholdMemberRepository householdMemberRepository;
+    private final HouseholdDataEraser householdDataEraser;
 
-    public HouseholdService(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository) {
+    public HouseholdService(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository,
+            HouseholdDataEraser householdDataEraser) {
         this.householdRepository = householdRepository;
         this.householdMemberRepository = householdMemberRepository;
+        this.householdDataEraser = householdDataEraser;
+    }
+
+    /**
+     * Tira o usuário do household quando a conta dele é excluída (Fase 14). Último membro
+     * saindo = o household e todos os dados financeiros dele são apagados; com outros membros
+     * (household compartilhado, ainda não exposto na UI), só a participação sai.
+     */
+    @EventListener
+    @Transactional
+    public void onUserDeleting(UserDeletingEvent event) {
+        UUID userId = event.userId();
+        householdMemberRepository.findHouseholdIdByUserId(userId).ifPresent(householdId -> {
+            if (householdMemberRepository.countByHouseholdId(householdId) <= 1) {
+                householdDataEraser.erase(householdId);
+            } else {
+                householdMemberRepository.deleteByUserId(userId);
+            }
+        });
     }
 
     /**
