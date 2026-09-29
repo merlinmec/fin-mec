@@ -43,6 +43,10 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-fin-mec <no-reply@localhost>}
+      PLUGGY_CLIENT_ID: ${PLUGGY_CLIENT_ID:-}
+      PLUGGY_CLIENT_SECRET: ${PLUGGY_CLIENT_SECRET:-}
+      PLUGGY_WEBHOOK_SECRET: ${PLUGGY_WEBHOOK_SECRET:-}
+      PLUGGY_INCLUDE_SANDBOX: ${PLUGGY_INCLUDE_SANDBOX:-false}
     expose:
       - "8080"
     healthcheck:

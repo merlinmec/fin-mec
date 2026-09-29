@@ -43,6 +43,9 @@ Preencha o `.env.prod`:
 | `DB_PASSWORD` | `openssl rand -base64 24` |
 | `MECFIN_ENCRYPTION_KEY` | `openssl rand -base64 32` — **guarde uma cópia fora da VPS**: ela cifra os segredos do 2FA; perdê-la tranca fora quem usa 2FA |
 | `MAIL_*` | credenciais SMTP do provedor; o remetente de `MAIL_FROM` precisa estar verificado nele |
+| `PLUGGY_CLIENT_ID` / `PLUGGY_CLIENT_SECRET` | opcional (Open Finance): crie uma aplicação em https://dashboard.pluggy.ai; vazio = tela "Bancos conectados" desligada |
+| `PLUGGY_WEBHOOK_SECRET` | opcional: `openssl rand -hex 24`; com ele (e `MECFIN_BASE_URL` em https) o banco avisa de lançamento novo na hora, sem ele só o job diário e o botão "Sincronizar" |
+| `PLUGGY_INCLUDE_SANDBOX` | `true` só para testar com o banco fictício da Pluggy |
 
 Suba:
 
@@ -101,3 +104,5 @@ As migrations novas rodam sozinhas no boot. Sessões sobrevivem à troca do cont
 - [ ] SMTP configurado e testado ("Esqueci minha senha" chegando).
 - [ ] `restore-check.sh` executado com sucesso e cópia externa do backup funcionando.
 - [ ] Firewall: só 22 (SSH com chave), 80 e 443.
+- [ ] Se usar Open Finance: `PLUGGY_CLIENT_SECRET` e `PLUGGY_WEBHOOK_SECRET` só no `.env.prod`, e
+      `PLUGGY_INCLUDE_SANDBOX=false`.
