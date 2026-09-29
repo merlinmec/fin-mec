@@ -5,6 +5,7 @@ export interface CurrentUser {
   id: string;
   email: string;
   createdAt: string;
+  mfaEnabled: boolean;
 }
 
 /** Espelha com.mecfin.identity.api.RegisterRequest (senha: 10-72 caracteres). */
@@ -32,12 +33,23 @@ export function registerUser(payload: RegisterPayload): Promise<CurrentUser> {
   return api.post<CurrentUser>("/auth/register", payload);
 }
 
+/** 202 do login quando a conta tem 2FA: a sessao ainda nao esta autenticada. */
+export interface MfaChallenge {
+  mfaRequired: true;
+}
+
 /**
  * POST /api/auth/login — autentica por sessao (cookie). Rate limit por
- * IP+e-mail: 429 se exceder o limite. 401 se credenciais invalidas.
+ * IP+e-mail e bloqueio temporario da conta: 429. 401 se credenciais invalidas.
+ * Com 2FA ativo devolve {mfaRequired: true} e o login termina em loginMfa().
  */
-export function loginUser(payload: LoginPayload): Promise<CurrentUser> {
-  return api.post<CurrentUser>("/auth/login", payload);
+export function loginUser(payload: LoginPayload): Promise<CurrentUser | MfaChallenge> {
+  return api.post<CurrentUser | MfaChallenge>("/auth/login", payload);
+}
+
+/** POST /api/auth/login/mfa — codigo do app autenticador ou codigo de recuperacao. */
+export function loginMfa(code: string): Promise<CurrentUser> {
+  return api.post<CurrentUser>("/auth/login/mfa", { code });
 }
 
 /** POST /api/auth/logout — invalida a sessao no backend (204 No Content). */
