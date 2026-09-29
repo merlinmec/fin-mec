@@ -11,10 +11,9 @@ import java.util.UUID;
 
 /**
  * Espaço financeiro compartilhado. Contas, categorias, orçamentos e lançamentos
- * pertencem a um household, nunca diretamente a um usuário — isso permite, no
- * futuro, convidar um segundo membro para o mesmo espaço (ex.: casal) sem
- * migração de schema. No MVP todo usuário ganha um household próprio
- * automaticamente no registro (ver {@link com.mecfin.household.application.HouseholdService}).
+ * pertencem a um household, nunca diretamente a um usuário — por isso convidar um
+ * segundo membro (ex.: casal, Fase 17) não exigiu migrar nenhum dado. Todo usuário ganha um
+ * household próprio no registro (ver {@link com.mecfin.household.application.HouseholdService}).
  */
 @Entity
 @Table(name = "households")
@@ -36,6 +35,10 @@ public class Household {
     public Household(String name) {
         this.name = name;
         this.createdAt = Instant.now();
+    }
+
+    public void rename(String name) {
+        this.name = name;
     }
 
     public UUID getId() {

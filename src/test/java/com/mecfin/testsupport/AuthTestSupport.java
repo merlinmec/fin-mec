@@ -1,5 +1,6 @@
 package com.mecfin.testsupport;
 
+import com.mecfin.identity.api.LoginRequest;
 import com.mecfin.identity.api.RegisterRequest;
 import com.mecfin.identity.api.UserResponse;
 import java.util.UUID;
@@ -50,6 +51,23 @@ public final class AuthTestSupport {
         String csrfToken = fetchCsrfToken(client, sessionCookie);
 
         return new AuthenticatedTestUser(body.id(), body.email(), sessionCookie, csrfToken);
+    }
+
+    /** Login de um usuário que já existe (sem 2FA). */
+    public static AuthenticatedTestUser login(RestTestClient client, String email, String password) {
+        String bootstrapCsrfToken = fetchCsrfToken(client);
+        EntityExchangeResult<UserResponse> result = client.post().uri("/api/auth/login")
+                .cookie("XSRF-TOKEN", bootstrapCsrfToken)
+                .header("X-XSRF-TOKEN", bootstrapCsrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new LoginRequest(email, password))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserResponse.class)
+                .returnResult();
+        String sessionCookie = cookieValue(result, "JSESSIONID");
+        UserResponse body = result.getResponseBody();
+        return new AuthenticatedTestUser(body.id(), body.email(), sessionCookie, fetchCsrfToken(client, sessionCookie));
     }
 
     private static String fetchCsrfToken(RestTestClient client) {
