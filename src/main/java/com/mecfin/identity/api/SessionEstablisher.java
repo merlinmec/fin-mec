@@ -1,5 +1,6 @@
 package com.mecfin.identity.api;
 
+import com.mecfin.identity.application.SessionService;
 import com.mecfin.identity.domain.AuthenticatedUser;
 import com.mecfin.identity.infra.SessionStampValidator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,6 +48,13 @@ public class SessionEstablisher {
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities()));
         holder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+        // Para a lista "sessões ativas" (Configurações > Segurança) saber de onde é cada sessão.
+        request.getSession().setAttribute(SessionService.USER_AGENT_ATTRIBUTE, truncate(request.getHeader("User-Agent")));
+        request.getSession().setAttribute(SessionService.IP_ATTRIBUTE, request.getRemoteAddr());
         return principal;
+    }
+
+    private static String truncate(String value) {
+        return value == null || value.length() <= 255 ? value : value.substring(0, 255);
     }
 }

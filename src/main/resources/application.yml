@@ -15,6 +15,26 @@ spring:
   flyway:
     enabled: true
 
+  # Fase 18: sessão no Postgres. Tabelas criadas pela migration V18 (nunca pelo framework).
+  session:
+    jdbc:
+      initialize-schema: never
+      cleanup-cron: "0 */5 * * * *"
+
+  # E-mail transacional (recuperação de senha, alerta de acesso novo). Sem MAIL_HOST o
+  # EmailSender só registra no log — ver shared/mail/EmailSender.
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
   # Upload de extrato (Fase 15): um OFX/CSV de um ano inteiro fica bem abaixo de 2 MB.
   servlet:
     multipart:
@@ -22,6 +42,11 @@ spring:
       max-request-size: 3MB
 
 server:
+  # Atrás do proxy (Caddy) o IP real vem em X-Forwarded-For. "native" usa o RemoteIpValve do
+  # Tomcat, que só confia nesses cabeçalhos quando a conexão vem de rede interna (10/8,
+  # 172.16/12, 192.168/16, 127/8) — exposto direto na internet, ninguém forja o próprio IP para
+  # driblar o rate limit ou sujar a auditoria.
+  forward-headers-strategy: native
   error:
     include-stacktrace: never
     include-message: never
@@ -30,6 +55,8 @@ server:
     session:
       timeout: 30m
       cookie:
+        # Nome mantido com o Spring Session (o padrão dele seria "SESSION").
+        name: JSESSIONID
         http-only: true
         secure: true
         same-site: lax
@@ -50,6 +77,11 @@ management:
   endpoint:
     health:
       show-details: never
+  # E-mail é dependência auxiliar: provedor SMTP fora do ar não pode marcar o app como DOWN
+  # (o orquestrador reiniciaria/tiraria do ar um app que está servindo normalmente).
+  health:
+    mail:
+      enabled: false
 
 # Documentação da API (Swagger/OpenAPI) só no perfil dev: em produção ela ficaria pública fora
 # de /api/** (anyRequest().permitAll() serve o SPA), expondo o mapa inteiro da API.
@@ -60,6 +92,11 @@ springdoc:
     enabled: false
 
 mecfin:
+  app:
+    # URL pública do app — vai nos links dos e-mails (redefinição de senha).
+    base-url: ${MECFIN_BASE_URL:http://localhost:5173}
+  mail:
+    from: ${MAIL_FROM:fin-mec <no-reply@localhost>}
   security:
     # AES-256 (32 bytes em base64) para cifrar o segredo do 2FA. Obrigatória fora do perfil
     # dev - gere com: openssl rand -base64 32
@@ -90,3 +127,23 @@ mecfin:
   security:
     # Chave fixa só para desenvolvimento local - nunca usar em produção.
     encryption-key: ${MECFIN_ENCRYPTION_KEY:ZGV2LW9ubHkta2V5LWRvLW5vdC11c2UtaW4tcHJvZCE=}
+
+---
+# Produção (docker-compose.prod.yml). Actuator numa porta de gerência própria, que o compose não
+# publica: health para o healthcheck e métricas Prometheus para quem estiver na rede interna.
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

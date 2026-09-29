@@ -22,6 +22,20 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
+    path: "/esqueci-senha",
+    lazy: async () => ({
+      Component: (await import("@/routes/auth/PasswordRecoveryPages")).ForgotPasswordPage,
+    }),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/redefinir-senha",
+    lazy: async () => ({
+      Component: (await import("@/routes/auth/PasswordRecoveryPages")).ResetPasswordPage,
+    }),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: "/register",
     element: <RegisterPage />,
     errorElement: <RouteErrorBoundary />,

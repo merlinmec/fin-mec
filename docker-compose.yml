@@ -15,5 +15,13 @@ services:
       timeout: 5s
       retries: 10
 
+  # SMTP falso para desenvolvimento: captura os e-mails (redefinição de senha, alertas) e mostra
+  # numa caixa de entrada web em http://localhost:8025. Ligue com MAIL_HOST=localhost no .env.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   mecfin-postgres-data:

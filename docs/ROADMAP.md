@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026 (Fase 15 entregue). Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fases 15 e 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -24,7 +24,7 @@ nem acesso a contas reais):
 | Regras de categorização automática | parcial | ✔ | ✔ | ✔ | ✔ | ✔ Fase 15 |
 | Open Finance (sincronização bancária) | ✔ | ✔ | ✔ (EUA) | ✔ | ✘ | só a porta (Fase 9) → Fase 16 |
 | Conta compartilhada (casal/família) | ✔ | ✔ | ✔ | ✔ | ✘ | schema pronto → Fase 17 |
-| Recuperação de senha por e-mail | ✔ | ✔ | ✔ | ✔ | ✔ | ✘ Fase 18 |
+| Recuperação de senha por e-mail | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ Fase 18 |
 | App mobile / PWA | nativo | nativo | nativo | nativo | PWA | responsivo → Fase 20 |
 
 **Onde o fin-mec já se diferencia** (argumento de portfólio): toda regra
@@ -90,7 +90,7 @@ apps de finanças.
 - **Pronto quando:** dois usuários veem os mesmos dados; membro removido perde
   acesso na hora (reaproveitar o carimbo de segurança).
 
-### Fase 18: Produção (a Fase 11 do roadmap original)
+### Fase 18: Produção (a Fase 11 do roadmap original) — ✔ entregue (falta escolher onde hospedar)
 - Deploy com HTTPS (HSTS já configurado), `server.forward-headers-strategy`
   atrás do proxy (hoje o IP da auditoria e do rate limit seria o do proxy).
 - E-mail transacional: **recuperação de senha** (lacuna de confiabilidade mais
@@ -103,6 +103,15 @@ apps de finanças.
   (métricas do Actuator, logs estruturados com o correlation id que já existe).
 - **Pronto quando:** restore testado, alerta de erro 5xx, zero segredo no
   repositório.
+
+- **Entregue:** recuperação de senha por e-mail (token de uso único, só hash no banco, resposta
+  igual para e-mail inexistente), alerta de acesso de dispositivo novo, sessões no Postgres com
+  lista "sessões ativas" e encerramento individual, ShedLock no job de recorrência, `X-Forwarded-For`
+  confiável só da rede interna, métricas Prometheus em porta interna, imagem Docker multi-stage,
+  `docker-compose.prod.yml` com Caddy (HTTPS automático) e backup diário verificado +
+  `restore-check.sh`, guia em `docs/DEPLOY.md`. Stack inteira testada localmente de ponta a ponta.
+- **Pendente (decisão do usuário):** provedor da VPS e domínio — o compose roda em qualquer VPS
+  com Docker.
 
 ### Fase 19: Inteligência
 - Previsão de saldo para 30/60/90 dias a partir dos fixos (curva, não só o fim
@@ -124,8 +133,8 @@ apps de finanças.
   conta do dia 31 passa a vencer no 30/28 depois de meses curtos, e não volta
   (o motor de lançamentos fixos não tem esse problema).
 - Tags de um lançamento fixo criado antes da Fase 13 não são retroativas.
-- Revogação de sessão entre várias instâncias leva até 10 s (cache do carimbo);
-  resolvido de vez com o Spring Session da Fase 18.
+- Revogação por carimbo de segurança entre várias instâncias leva até 10 s (cache); as sessões em
+  si já são apagadas do banco na hora desde a Fase 18.
 - O bloqueio por tentativas permite que alguém que conheça seu e-mail bloqueie
   a conta por 15 minutos. É o trade-off padrão: a mitigação futura é
   CAPTCHA/prova de trabalho após algumas falhas.

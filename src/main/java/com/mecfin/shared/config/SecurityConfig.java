@@ -53,8 +53,12 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/actuator/health", "/api/actuator/health/**").permitAll()
+                        // Métricas só existem no perfil prod, e lá o actuator escuta numa porta de
+                        // gerência (9090) que não é publicada para fora (ver docker-compose.prod.yml).
+                        .requestMatchers("/api/actuator/prometheus").permitAll()
                         .requestMatchers("/api/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/login/mfa")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/login/mfa",
+                                "/api/auth/password/forgot", "/api/auth/password/reset")
                         .permitAll()
                         // Tudo sob /api/** que nao caiu numa regra acima precisa de sessao. Fora de
                         // /api/** e o shell do SPA (index.html, JS/CSS, e qualquer rota so do client-

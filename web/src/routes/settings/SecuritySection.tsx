@@ -8,6 +8,7 @@ import {
   Download,
   KeyRound,
   LogOut,
+  Monitor,
   ShieldCheck,
   ShieldOff,
   Smartphone,
@@ -15,6 +16,8 @@ import {
 import { toast } from "sonner";
 import {
   ALERT_EVENTS,
+  endSession,
+  listSessions,
   SECURITY_EVENT_LABELS,
   changePassword,
   disableMfa,
@@ -115,7 +118,7 @@ export function SecuritySection() {
         title="Sessões"
         description="Trocar a senha ou mexer no 2FA já encerra as outras sessões automaticamente."
       >
-        <RevokeSessions />
+        <ActiveSessions />
       </Panel>
 
       <Panel
@@ -513,9 +516,19 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
   );
 }
 
-function RevokeSessions() {
+function ActiveSessions() {
   const refresh = useRefreshSecurity();
-  const mutation = useMutation({
+  const queryClient = useQueryClient();
+  const sessions = useQuery({ queryKey: ["account-security", "sessions"], queryFn: listSessions });
+  const end = useMutation({
+    mutationFn: (id: string) => endSession(id),
+    onSuccess: () => {
+      toast.success("Sessão encerrada.");
+      void queryClient.invalidateQueries({ queryKey: ["account-security"] });
+    },
+    onError: (e) => toast.error(getErrorMessage(e)),
+  });
+  const revokeOthers = useMutation({
     mutationFn: revokeOtherSessions,
     onSuccess: async () => {
       toast.success("Todas as outras sessões foram encerradas.");
@@ -523,14 +536,58 @@ function RevokeSessions() {
     },
     onError: (e) => toast.error(getErrorMessage(e)),
   });
+  const others = (sessions.data ?? []).filter((s) => !s.current).length;
+
+  if (sessions.isPending) return <Skeleton className="h-28 rounded-xl" />;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-muted-foreground">
-        Esqueceu o fin-mec aberto em outro computador? Encerre todas as sessões, menos esta.
-      </p>
-      <Button variant="outline" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-        <LogOut /> Sair das outras sessões
-      </Button>
+    <div className="space-y-3">
+      <ul className="-mx-1 divide-y divide-border/60">
+        {(sessions.data ?? []).map((s) => (
+          <li key={s.id} className="flex items-center gap-3 px-1 py-2.5">
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-full",
+                s.current ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+              )}
+            >
+              <Monitor className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {s.device}
+                {s.current && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    Esta sessão
+                  </span>
+                )}
+              </div>
+              <div className="truncate text-xs text-muted-foreground">
+                {s.ipAddress ? `IP ${s.ipAddress} · ` : ""}último acesso{" "}
+                {formatDateTime(s.lastAccessedAt)} · desde {formatDateTime(s.createdAt)}
+              </div>
+            </div>
+            {!s.current && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={end.isPending}
+                onClick={() => end.mutate(s.id)}
+              >
+                Encerrar
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {others > 0 && (
+        <Button
+          variant="outline"
+          onClick={() => revokeOthers.mutate()}
+          disabled={revokeOthers.isPending}
+        >
+          <LogOut /> Encerrar as outras {others} sessões
+        </Button>
+      )}
     </div>
   );
 }
