@@ -3,6 +3,7 @@ import { MonthSelector } from "@/components/MonthSelector";
 import { CardGridSkeleton } from "@/components/CardGridSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { currentYearMonth, formatYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { useDashboard } from "./hooks";
@@ -13,7 +14,7 @@ import { BudgetsSummaryCard } from "./BudgetsSummaryCard";
 
 function DashboardCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-4">
+    <section className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
       <h2 className="mb-3 text-sm font-medium text-muted-foreground">{title}</h2>
       {children}
     </section>
@@ -23,6 +24,7 @@ function DashboardCard({ title, children }: { title: string; children: ReactNode
 export function DashboardPage() {
   const [month, setMonth] = useState(currentYearMonth());
   const { data, isPending, isError } = useDashboard(month);
+  const balanceVisibility = useBalanceVisibility();
 
   return (
     <div className="space-y-6">
@@ -51,8 +53,19 @@ export function DashboardPage() {
       {data && (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            <StatTile label="Saldo disponível" value={formatMoney(data.totalAvailableBalance)} />
-            <StatTile label="Saldo contábil" value={formatMoney(data.totalLedgerBalance)} />
+            <StatTile
+              label="Saldo disponível"
+              value={formatMoney(data.totalAvailableBalance)}
+              accent
+              hidden={balanceVisibility.hidden}
+              onToggleHidden={balanceVisibility.toggle}
+            />
+            <StatTile
+              label="Saldo contábil"
+              value={formatMoney(data.totalLedgerBalance)}
+              hidden={balanceVisibility.hidden}
+              onToggleHidden={balanceVisibility.toggle}
+            />
             <StatTile label="Receitas do mês" value={formatMoney(data.monthlyIncome)} tone="positive" />
             <StatTile label="Despesas do mês" value={formatMoney(data.monthlyExpense)} tone="negative" />
             <StatTile
@@ -69,7 +82,7 @@ export function DashboardPage() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <DashboardCard title="Saldo por conta">
-              <AccountBalancesCard balances={data.accountBalances} />
+              <AccountBalancesCard balances={data.accountBalances} hidden={balanceVisibility.hidden} />
             </DashboardCard>
             <DashboardCard title="Próximos vencimentos">
               <UpcomingBillsCard bills={data.upcomingBills} />

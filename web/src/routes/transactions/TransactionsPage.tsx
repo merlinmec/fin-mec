@@ -81,7 +81,7 @@ export function TransactionsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
         <MonthSelector value={month} onChange={changeMonth} />
 
         <div className="min-w-48 flex-1 space-y-1">
