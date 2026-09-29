@@ -5,6 +5,7 @@ import {
   Check,
   Layers,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Repeat,
   XCircle,
@@ -16,6 +17,7 @@ import type { EditScope, Transaction } from "@/api/transactions";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { TagChip } from "@/components/TagPicker";
 import { memberLabel, useHousehold } from "@/hooks/useHousehold";
+import { AttachmentsDialog } from "./AttachmentsDialog";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -53,6 +55,7 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const cancelTransaction = useCancelTransaction();
   const confirm = useConfirmTransaction();
 
@@ -125,6 +128,17 @@ export function TransactionRow({
           </span>
           <span aria-hidden>·</span>
           <span className="truncate">{account?.name ?? "Conta removida"}</span>
+          {transaction.attachmentCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setAttachmentsOpen(true)}
+              className="inline-flex items-center gap-0.5 rounded hover:text-foreground"
+              aria-label={`${transaction.attachmentCount} comprovante(s)`}
+              title="Ver comprovantes"
+            >
+              <Paperclip className="size-3" /> {transaction.attachmentCount}
+            </button>
+          )}
           {author && (
             <>
               <span aria-hidden>·</span>
@@ -203,6 +217,18 @@ export function TransactionRow({
                 {isOutflow ? "Marcar como pago" : "Marcar como recebido"}
               </MenuButton>
             )}
+            {!isTransfer && (
+              <MenuButton
+                icon={<Paperclip className="size-4" />}
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAttachmentsOpen(true);
+                }}
+              >
+                Comprovantes
+                {transaction.attachmentCount > 0 ? ` (${transaction.attachmentCount})` : ""}
+              </MenuButton>
+            )}
             <MenuButton
               destructive
               icon={<XCircle className="size-4" />}
@@ -215,6 +241,14 @@ export function TransactionRow({
             </MenuButton>
           </PopoverContent>
         </Popover>
+      )}
+
+      {attachmentsOpen && (
+        <AttachmentsDialog
+          transaction={transaction}
+          open={attachmentsOpen}
+          onOpenChange={setAttachmentsOpen}
+        />
       )}
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>

@@ -3,7 +3,9 @@ package com.mecfin.identity.application;
 import com.mecfin.identity.domain.SecurityEventType;
 import com.mecfin.identity.domain.User;
 import com.mecfin.identity.domain.UserDeletingEvent;
+import com.mecfin.identity.infra.RateLimiter;
 import com.mecfin.identity.infra.UserRepository;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,16 +23,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccountSecurityService {
 
+    static final int REAUTH_ATTEMPTS = 5;
+    static final Duration REAUTH_WINDOW = Duration.ofMinutes(15);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
     private final MfaService mfaService;
     private final SecurityEventService securityEvents;
     private final ApplicationEventPublisher eventPublisher;
+    private final RateLimiter rateLimiter;
 
     public AccountSecurityService(UserRepository userRepository, PasswordEncoder passwordEncoder,
             PasswordPolicy passwordPolicy, MfaService mfaService, SecurityEventService securityEvents,
-            ApplicationEventPublisher eventPublisher) {
+            ApplicationEventPublisher eventPublisher, RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
@@ -42,6 +49,7 @@ public class AccountSecurityService {
     /** Troca a senha e derruba todas as outras sessões (novo carimbo de segurança). */
     @Transactional
     public void changePassword(UUID userId, String currentPassword, String newPassword, ClientInfo client) {
+        limitAttempts(userId);
         User user = load(userId);
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Senha atual incorreta");
@@ -63,6 +71,7 @@ public class AccountSecurityService {
     /** Senha sempre; código do 2FA (ou de recuperação) só se o 2FA estiver ativo. */
     @Transactional
     public void reauthenticate(UUID userId, String password, String code, ClientInfo client) {
+        limitAttempts(userId);
         User user = load(userId);
         if (password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new IllegalArgumentException("Senha incorreta");
@@ -85,6 +94,19 @@ public class AccountSecurityService {
         reauthenticate(userId, password, code, client);
         eventPublisher.publishEvent(new UserDeletingEvent(userId));
         userRepository.delete(load(userId));
+    }
+
+    /**
+     * Teto de tentativas das ações que pedem a senha de novo (trocar senha, excluir conta,
+     * desligar 2FA, exportar dados). Achado na Fase 20: nenhuma delas contava erro, então quem
+     * roubasse um cookie de sessão podia testar senhas à vontade por ali. Conta toda tentativa,
+     * certa ou errada, e fica em memória — um contador no banco seria desfeito pelo rollback da
+     * própria transação que falhou.
+     */
+    private void limitAttempts(UUID userId) {
+        if (!rateLimiter.tryConsume("reauth:" + userId, REAUTH_ATTEMPTS, REAUTH_WINDOW)) {
+            throw new RateLimitExceededException();
+        }
     }
 
     public User load(UUID userId) {

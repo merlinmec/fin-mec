@@ -38,8 +38,12 @@ spring:
   # Upload de extrato (Fase 15): um OFX/CSV de um ano inteiro fica bem abaixo de 2 MB.
   servlet:
     multipart:
-      max-file-size: 2MB
-      max-request-size: 3MB
+      # Rede de segurança ACIMA dos limites da aplicação (comprovante 5 MB, extrato 2 MB), que
+      # cada recurso confere e responde com 413 limpo. Se este limite fosse o próprio 5 MB, o
+      # Tomcat derrubaria a conexão no meio do envio e o cliente às vezes veria "broken pipe" em
+      # vez do 413 (aconteceu no CI).
+      max-file-size: 6MB
+      max-request-size: 7MB
 
 server:
   # Atrás do proxy (Caddy) o IP real vem em X-Forwarded-For. "native" usa o RemoteIpValve do

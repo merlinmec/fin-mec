@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CommandPalette } from "@/components/CommandPalette";
+import { OfflineBanner } from "@/app/pwa";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 
@@ -170,6 +171,7 @@ function ShellLayout() {
         </div>
       </header>
 
+      <OfflineBanner />
       <main className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-5 pb-28 sm:px-6 lg:pt-7 lg:pb-12">
         <Outlet />
       </main>

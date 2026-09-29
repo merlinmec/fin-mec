@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, apiBlob } from "./client";
 
 export type SecurityEventType =
   | "LOGIN_SUCCESS"
@@ -16,7 +16,8 @@ export type SecurityEventType =
   | "SESSION_ENDED"
   | "HOUSEHOLD_JOINED"
   | "HOUSEHOLD_LEFT"
-  | "HOUSEHOLD_REMOVED";
+  | "HOUSEHOLD_REMOVED"
+  | "DATA_EXPORTED";
 
 export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   LOGIN_SUCCESS: "Login realizado",
@@ -35,6 +36,7 @@ export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   HOUSEHOLD_JOINED: "Entrou num household compartilhado",
   HOUSEHOLD_LEFT: "Saiu do household compartilhado",
   HOUSEHOLD_REMOVED: "Removido do household compartilhado pelo dono",
+  DATA_EXPORTED: "Cópia dos dados baixada",
 };
 
 /** Eventos que merecem destaque de alerta na lista. */
@@ -117,6 +119,14 @@ export function regenerateRecoveryCodes(
   return api.post<{ recoveryCodes: string[] }>("/account/2fa/recovery-codes", {
     password,
     code: code || undefined,
+  });
+}
+
+/** Exportação LGPD: devolve o arquivo JSON (Blob) com o nome sugerido pelo servidor. */
+export function exportMyData(password: string, code?: string) {
+  return apiBlob("/account/export", {
+    method: "POST",
+    body: JSON.stringify({ password, code: code || undefined }),
   });
 }
 

@@ -120,6 +120,52 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return (await res.text()) as T;
 }
 
+/**
+ * Download binário (comprovante, exportação de dados): mesmo CSRF e mesmo tratamento de 401 do
+ * apiFetch, mas devolve o Blob e o nome sugerido pelo Content-Disposition.
+ */
+export async function apiBlob(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ blob: Blob; fileName: string | null }> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const headers = new Headers(init.headers);
+  if (init.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (!SAFE_METHODS.has(method)) {
+    const token = readCsrfCookie();
+    if (token) headers.set(csrfHeaderName, token);
+  }
+  const res = await fetch(BASE + path, { ...init, method, headers, credentials: "include" });
+  if (res.status === 401) {
+    onUnauthorized?.();
+    throw new ApiError(401, await readProblem(res));
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, await readProblem(res));
+  }
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  const plain = /filename="([^"]+)"/i.exec(disposition)?.[1];
+  return {
+    blob: await res.blob(),
+    fileName: encoded ? decodeURIComponent(encoded) : (plain ?? null),
+  };
+}
+
+/** Entrega um Blob como download ao usuário (link temporário, revogado em seguida). */
+export function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function jsonBody(body: unknown): string | undefined {
   return body === undefined ? undefined : JSON.stringify(body);
 }

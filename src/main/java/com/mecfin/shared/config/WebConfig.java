@@ -1,8 +1,10 @@
 package com.mecfin.shared.config;
 
 import java.io.IOException;
+import java.time.Duration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerTypePredicate;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
@@ -56,6 +58,12 @@ public class WebConfig implements WebMvcConfigurer {
     // nem o arquivo nem o index.html e some no 404 padrão — não quebra nada.
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Arquivos do build com hash no nome nunca mudam: cache de 1 ano (o Spring Security só
+        // põe o no-store padrão quando a resposta não trouxe Cache-Control). index.html, sw.js e
+        // manifesto continuam sem cache — é por eles que uma versão nova chega.
+        registry.addResourceHandler("/assets/**")
+                .addResourceLocations("classpath:/static/assets/")
+                .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
         registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/")
                 .resourceChain(true)
