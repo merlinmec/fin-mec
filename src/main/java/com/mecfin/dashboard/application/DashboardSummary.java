@@ -10,11 +10,13 @@ import java.util.List;
  * Modelo de leitura agregado do dashboard - dashboard não tem entidade nem tabela própria,
  * é puramente composição de account/transaction/bill/budget (ver DashboardService).
  *
- * {@code projectedBalance} é uma previsão simples: saldo disponível menos as contas a pagar
- * (Bill) OPEN com vencimento até o fim do mês de referência. Lançamentos recorrentes
- * (Transaction/Bill com recurrenceRule) NÃO entram nessa previsão - recorrência ainda é só
- * metadado (decisão do usuário nas Fases 5/6), sem motor que gere as ocorrências futuras, então
- * não há como somar o que ainda não existe como registro.
+ * {@code projectedBalance}: saldo disponível, menos as contas a pagar (Bill) OPEN com
+ * vencimento até o fim do mês de referência, mais o saldo dos lançamentos previstos (PENDING)
+ * até essa data. Desde a Fase 11 o motor de recorrência materializa as ocorrências futuras dos
+ * fixos como PENDING, então elas entram aqui sem nenhuma regra especial.
+ *
+ * {@code pendingIncome}/{@code pendingExpense}: o que ainda falta receber/pagar na competência
+ * do mês (lançamentos PENDING), separado do realizado em monthlyIncome/monthlyExpense.
  */
 public record DashboardSummary(
         YearMonth referenceMonth,
@@ -23,6 +25,8 @@ public record DashboardSummary(
         BigDecimal totalAvailableBalance,
         BigDecimal monthlyIncome,
         BigDecimal monthlyExpense,
+        BigDecimal pendingIncome,
+        BigDecimal pendingExpense,
         BigDecimal projectedBalance,
         List<BillView> upcomingBills,
         List<CategoryExpense> expensesByCategory,

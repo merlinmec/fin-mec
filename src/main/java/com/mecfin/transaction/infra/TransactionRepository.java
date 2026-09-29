@@ -100,4 +100,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("accountIds") List<UUID> accountIds,
             @Param("status") TransactionStatus status,
             @Param("asOfDate") LocalDate asOfDate);
+
+    List<Transaction> findAllByRecurrenceSeriesIdAndStatusOrderByRecurrenceIndexAsc(
+            UUID recurrenceSeriesId, TransactionStatus status);
+
+    // "Próxima ocorrência" de um fixo = a primeira ainda não efetivada, derivada na leitura.
+    @Query("SELECT MIN(t.transactionDate) FROM Transaction t WHERE t.recurrenceSeriesId = :seriesId "
+            + "AND t.status = com.mecfin.transaction.domain.TransactionStatus.PENDING")
+    LocalDate findNextPendingDate(@Param("seriesId") UUID seriesId);
 }
