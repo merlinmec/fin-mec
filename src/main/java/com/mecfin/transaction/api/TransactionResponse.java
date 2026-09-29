@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Set;
 import java.util.UUID;
 
 public record TransactionResponse(
@@ -29,6 +30,7 @@ public record TransactionResponse(
         RecurrenceRule recurrenceRule,
         UUID recurrenceSeriesId,
         Integer recurrenceIndex,
+        Set<UUID> tagIds,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -51,6 +53,7 @@ public record TransactionResponse(
                 transaction.getRecurrenceRule(),
                 transaction.getRecurrenceSeriesId(),
                 transaction.getRecurrenceIndex(),
+                Set.copyOf(transaction.getTagIds()),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt());
     }

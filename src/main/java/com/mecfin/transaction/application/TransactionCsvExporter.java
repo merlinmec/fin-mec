@@ -3,6 +3,7 @@ package com.mecfin.transaction.application;
 import com.mecfin.account.application.AccountService;
 import com.mecfin.category.domain.Category;
 import com.mecfin.category.infra.CategoryRepository;
+import com.mecfin.tag.application.TagService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;
@@ -36,19 +37,22 @@ public class TransactionCsvExporter {
     private static final byte[] UTF8_BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("MM/yyyy");
-    private static final String HEADER = "Data;Competência;Descrição;Categoria;Conta;Tipo;Situação;Valor";
+    private static final String HEADER = "Data;Competência;Descrição;Categoria;Conta;Tipo;Situação;Valor;Tags";
 
     private final TransactionService transactionService;
     private final AccountService accountService;
     private final CategoryRepository categoryRepository;
+    private final TagService tagService;
 
     public TransactionCsvExporter(
             TransactionService transactionService,
             AccountService accountService,
-            CategoryRepository categoryRepository) {
+            CategoryRepository categoryRepository,
+            TagService tagService) {
         this.transactionService = transactionService;
         this.accountService = accountService;
         this.categoryRepository = categoryRepository;
+        this.tagService = tagService;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +68,8 @@ public class TransactionCsvExporter {
         Map<UUID, String> categoryNames = categoryRepository.findAllById(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, Category::getName));
 
+        Map<UUID, String> tagNames = tagService.namesById();
+
         DecimalFormat money = new DecimalFormat("0.00", DecimalFormatSymbols.getInstance(Locale.of("pt", "BR")));
         StringBuilder csv = new StringBuilder(HEADER).append("\r\n");
         for (Transaction t : page) {
@@ -75,7 +81,9 @@ public class TransactionCsvExporter {
                     cell(lookup(accountNames, t.getAccountId())),
                     typeLabel(t),
                     statusLabel(t.getStatus()),
-                    money.format(signed(t))))
+                    money.format(signed(t)),
+                    cell(t.getTagIds().stream().map(id -> tagNames.getOrDefault(id, "")).sorted()
+                            .collect(Collectors.joining(", ")))))
                     .append("\r\n");
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();

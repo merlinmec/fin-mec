@@ -26,7 +26,8 @@ public record TransactionFilter(
         LocalDate to,
         String query,
         BigDecimal minAmount,
-        BigDecimal maxAmount) {
+        BigDecimal maxAmount,
+        UUID tagId) {
 
     public static final int MAX_QUERY_LENGTH = 100;
 
@@ -48,7 +49,7 @@ public record TransactionFilter(
     }
 
     public static TransactionFilter empty() {
-        return new TransactionFilter(null, null, null, null, null, null, null, null, null, null);
+        return new TransactionFilter(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**

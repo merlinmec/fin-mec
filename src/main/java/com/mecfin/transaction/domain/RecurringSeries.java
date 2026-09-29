@@ -1,18 +1,25 @@
 package com.mecfin.transaction.domain;
 
 import com.mecfin.shared.domain.RecurrenceRule;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -71,6 +78,12 @@ public class RecurringSeries {
     @Version
     @Column(name = "version", nullable = false)
     private long version;
+
+    // Tags do molde (Fase 13): copiadas para cada ocorrência gerada.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "recurring_series_tags", joinColumns = @JoinColumn(name = "series_id"))
+    @Column(name = "tag_id")
+    private Set<UUID> tagIds = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -140,12 +153,23 @@ public class RecurringSeries {
 
     // Edição "esta e as próximas": o molde muda para que as ocorrências ainda não geradas
     // já nasçam com os valores novos.
-    public void updateTemplate(UUID categoryId, TransactionType type, BigDecimal amount, String description) {
+    public void updateTemplate(
+            UUID categoryId, TransactionType type, BigDecimal amount, String description, Set<UUID> tags) {
         this.categoryId = categoryId;
         this.type = type;
         this.amount = amount;
         this.description = description;
+        replaceTags(tags);
+    }
+
+    public void replaceTags(Set<UUID> tags) {
+        this.tagIds.clear();
+        this.tagIds.addAll(tags);
         touch();
+    }
+
+    public Set<UUID> getTagIds() {
+        return Collections.unmodifiableSet(tagIds);
     }
 
     /** Encerra a série: nenhuma ocorrência com data em {@code from} ou depois será gerada. */

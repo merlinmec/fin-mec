@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class TransactionFilterAndCsvTest {
 
     private static TransactionFilter withQuery(String q) {
-        return new TransactionFilter(null, null, null, null, null, null, null, q, null, null);
+        return new TransactionFilter(null, null, null, null, null, null, null, q, null, null, null);
     }
 
     @Test
@@ -23,10 +23,10 @@ class TransactionFilterAndCsvTest {
     @Test
     void rejectsInvertedRanges() {
         assertThatThrownBy(() -> new TransactionFilter(null, null, null, null, null,
-                LocalDate.of(2026, 9, 2), LocalDate.of(2026, 9, 1), null, null, null))
+                LocalDate.of(2026, 9, 2), LocalDate.of(2026, 9, 1), null, null, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new TransactionFilter(null, null, null, null, null, null, null, null,
-                BigDecimal.TEN, BigDecimal.ONE))
+                BigDecimal.TEN, BigDecimal.ONE, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
