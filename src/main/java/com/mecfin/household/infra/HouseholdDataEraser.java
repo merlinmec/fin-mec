@@ -36,6 +36,8 @@ public class HouseholdDataEraser {
             "DELETE FROM credit_cards WHERE household_id = :h",
             "DELETE FROM goals WHERE household_id = :h",
             "DELETE FROM categorization_rules WHERE household_id = :h",
+            // O conteúdo (transaction_attachment_contents) sai em cascata com o metadado.
+            "DELETE FROM transaction_attachments WHERE household_id = :h",
             "DELETE FROM transactions WHERE account_id IN " + ACCOUNTS,
             "DELETE FROM import_batches WHERE household_id = :h",
             "DELETE FROM recurring_series WHERE household_id = :h",

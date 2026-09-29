@@ -61,6 +61,8 @@ export interface Transaction {
   tagIds: string[];
   /** Quem lançou (Fase 17); null = automático (banco, recorrência) ou conta excluída. */
   createdBy: string | null;
+  /** Quantos comprovantes (Fase 20). */
+  attachmentCount: number;
   createdAt: string;
   updatedAt: string;
 }

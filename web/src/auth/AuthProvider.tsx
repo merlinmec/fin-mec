@@ -12,6 +12,7 @@ import {
 } from "@/api/auth";
 import { bootstrapCsrf } from "@/api/csrf";
 import { ApiError, setUnauthorizedHandler } from "@/api/client";
+import { clearOfflineData } from "@/app/offline-cache";
 import { AuthContext, type AuthStatus } from "./auth-context";
 
 /**
@@ -25,20 +26,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const previousUserId = useRef<string | null | undefined>(undefined);
 
-  // O cache do TanStack não sabe de quem é o dado: sem isto, quem entra depois de um logout na
-  // mesma aba via por um instante as contas da pessoa anterior (sério em computador
-  // compartilhado). Troca de usuário (inclusive para anônimo) = cache zerado.
+  // Nem o cache do TanStack nem o cache offline do service worker (Fase 20) sabem de quem é o
+  // dado: sem isto, quem entra depois de um logout na mesma aba (ou no mesmo celular) veria as
+  // contas da pessoa anterior. Zera quando não há ninguém logado — inclusive ao abrir o app com
+  // a sessão já expirada — e quando o usuário muda. NÃO zera quando a mesma pessoa só abre o
+  // app: apagar ali destruiria o cache offline a cada inicialização.
   useEffect(() => {
+    if (status === "loading") return;
     const current = user?.id ?? null;
-    if (previousUserId.current !== undefined && previousUserId.current !== current) {
+    const previous = previousUserId.current;
+    if (current === null || (previous != null && previous !== current)) {
       queryClient.clear();
+      void clearOfflineData();
     }
     previousUserId.current = current;
-  }, [user?.id, queryClient]);
+  }, [status, user?.id, queryClient]);
 
   const refresh = useCallback(async () => {
     try {
-      await bootstrapCsrf();
+      // Sem rede (app instalado, offline), o token CSRF não vem — mas a identidade pode vir do
+      // cache do service worker e as telas de leitura abrem; mutação só volta com a rede.
+      await bootstrapCsrf().catch((err: unknown) => {
+        if (err instanceof ApiError) throw err;
+      });
       const me = await fetchCurrentUser();
       setUser(me);
       setStatus("authenticated");
