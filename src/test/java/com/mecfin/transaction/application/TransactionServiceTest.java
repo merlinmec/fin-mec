@@ -16,6 +16,7 @@ import com.mecfin.account.domain.AccountType;
 import com.mecfin.category.infra.CategoryRepository;
 import com.mecfin.shared.domain.RecurrenceRule;
 import com.mecfin.shared.security.AuthenticatedPrincipal;
+import com.mecfin.tag.application.TagService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;
@@ -54,6 +55,9 @@ class TransactionServiceTest {
     @Mock
     private RecurringSeriesService recurringSeriesService;
 
+    @Mock
+    private TagService tagService;
+
     private final UUID householdId = UUID.randomUUID();
     private final UUID accountId = UUID.randomUUID();
 
@@ -70,7 +74,8 @@ class TransactionServiceTest {
     }
 
     private TransactionService service() {
-        return new TransactionService(transactionRepository, accountService, categoryRepository, recurringSeriesService);
+        return new TransactionService(transactionRepository, accountService, categoryRepository, recurringSeriesService,
+                tagService);
     }
 
     private void stubAccountVisible(UUID id) {
@@ -157,7 +162,7 @@ class TransactionServiceTest {
 
         List<Transaction> legs = service().createInstallments(
                 accountId, null, TransactionType.EXPENSE, new BigDecimal("100.00"), "TV",
-                LocalDate.of(2026, 8, 10), firstMonth, 3);
+                LocalDate.of(2026, 8, 10), firstMonth, 3, null);
 
         assertThat(legs).hasSize(3);
         assertThat(legs.get(0).getDescription()).isEqualTo("TV (1/3)");
@@ -173,7 +178,7 @@ class TransactionServiceTest {
     void createInstallmentsWithFewerThanTwoThrows() {
         assertThatThrownBy(() -> service().createInstallments(
                 accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "TV",
-                LocalDate.now(), YearMonth.now(), 1))
+                LocalDate.now(), YearMonth.now(), 1, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -199,7 +204,7 @@ class TransactionServiceTest {
 
         assertThatThrownBy(() -> service().update(
                 transactionId, null, TransactionType.EXPENSE, BigDecimal.ONE, "Hack",
-                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null, EditScope.THIS))
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null, EditScope.THIS, null))
                 .isInstanceOf(TransferNotEditableException.class);
     }
 
@@ -248,7 +253,7 @@ class TransactionServiceTest {
         when(recurringSeriesService.start(any(), eq(TransactionStatus.POSTED), eq(YearMonth.now()))).thenReturn(first);
 
         Transaction result = service().create(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Aluguel",
-                LocalDate.now(), YearMonth.now(), null, RecurrenceRule.MONTHLY, null);
+                LocalDate.now(), YearMonth.now(), null, RecurrenceRule.MONTHLY, null, null);
 
         assertThat(result).isSameAs(first);
         verify(transactionRepository, never()).save(any());
@@ -265,7 +270,8 @@ class TransactionServiceTest {
                 .thenReturn(Optional.of(legacy));
 
         service().update(transactionId, null, TransactionType.EXPENSE, new BigDecimal("12.00"), "Academia",
-                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, RecurrenceRule.MONTHLY, EditScope.THIS);
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, RecurrenceRule.MONTHLY, EditScope.THIS,
+                null);
 
         verifyNoInteractions(recurringSeriesService);
         assertThat(legacy.getRecurrenceRule()).isEqualTo(RecurrenceRule.MONTHLY);

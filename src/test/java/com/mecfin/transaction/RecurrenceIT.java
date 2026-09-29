@@ -81,7 +81,7 @@ class RecurrenceIT {
     private TransactionResponse createMonthlyRent(AuthenticatedTestUser user, UUID accountId, LocalDate endDate) {
         return withBody(user, client.post().uri("/api/transactions"))
                 .body(new CreateTransactionRequest(accountId, null, TransactionType.EXPENSE, new BigDecimal("1500.00"),
-                        "Aluguel", LocalDate.now(), YearMonth.now(), null, RecurrenceRule.MONTHLY, endDate))
+                        "Aluguel", LocalDate.now(), YearMonth.now(), null, RecurrenceRule.MONTHLY, endDate, null))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(TransactionResponse.class)
