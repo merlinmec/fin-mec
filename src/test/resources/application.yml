@@ -24,3 +24,9 @@ mecfin:
     # permanece no valor real: o teste dedicado de rate limit usa e-mail unico por
     # execucao, entao nao ha contaminacao entre testes nesse bucket.
     register-per-minute: 1000
+  security:
+    encryption-key: dGVzdC1vbmx5LWtleS0zMi1ieXRlcy1sb25nLW9rISE=
+    lockout:
+      # Abaixo do rate limit de login (5/min por IP+e-mail) para o bloqueio ser observável num
+      # teste que sempre sai do mesmo IP de loopback.
+      max-attempts: 3

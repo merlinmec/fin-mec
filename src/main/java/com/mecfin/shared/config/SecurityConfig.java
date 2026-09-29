@@ -1,5 +1,7 @@
 package com.mecfin.shared.config;
 
+import com.mecfin.shared.security.SessionValidator;
+import com.mecfin.shared.security.SessionValidityFilter;
 import com.mecfin.shared.web.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,9 +24,12 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
 /**
  * Fase 0: negava tudo por padrão, liberava só o health check.
@@ -36,14 +41,21 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    static final String CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; "
+            + "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; "
+            + "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; "
+            + "frame-ancestors 'none'";
+
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, RestAuthenticationEntryPoint restAuthenticationEntryPoint,
-            SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository) throws Exception {
+            SecurityContextRepository securityContextRepository, CsrfTokenRepository csrfTokenRepository,
+            SessionValidator sessionValidator) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/actuator/health", "/api/actuator/health/**").permitAll()
                         .requestMatchers("/api/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/login/mfa")
+                        .permitAll()
                         // Tudo sob /api/** que nao caiu numa regra acima precisa de sessao. Fora de
                         // /api/** e o shell do SPA (index.html, JS/CSS, e qualquer rota so do client-
                         // side router tipo /contas, resolvida por WebConfig#addResourceHandlers) -
@@ -76,6 +88,22 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler(restAuthenticationEntryPoint)))
+                // Sessão revogada (senha trocada, "sair das outras sessões", 2FA alterado) vira
+                // anônima logo depois de carregada - ver SessionValidityFilter.
+                .addFilterAfter(new SessionValidityFilter(sessionValidator), SecurityContextHolderFilter.class)
+                // Cabeçalhos de segurança (Fase 14). Os padrões do Spring Security já cobrem
+                // X-Content-Type-Options, X-Frame-Options, Cache-Control e HSTS (só em HTTPS);
+                // aqui entram CSP, Referrer-Policy e Permissions-Policy. CSP compatível com o build
+                // do Vite (sem script inline); 'unsafe-inline' só em style, exigido por atributos
+                // style="" do React e das bibliotecas de gráfico.
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY))
+                        .referrerPolicy(referrer -> referrer.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .frameOptions(frame -> frame.deny())
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                        .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy",
+                                "camera=(), microphone=(), geolocation=(), payment=(), usb=()")))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
