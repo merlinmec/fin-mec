@@ -1,18 +1,29 @@
 package com.mecfin.transaction.api;
 
 import com.mecfin.shared.web.PagedResponse;
+import com.mecfin.transaction.application.EditScope;
+import com.mecfin.transaction.application.TransactionCsvExporter;
+import com.mecfin.transaction.application.TransactionFilter;
 import com.mecfin.transaction.application.TransactionService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,9 +42,11 @@ public class TransactionController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final TransactionService transactionService;
+    private final TransactionCsvExporter csvExporter;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, TransactionCsvExporter csvExporter) {
         this.transactionService = transactionService;
+        this.csvExporter = csvExporter;
     }
 
     @PostMapping
@@ -48,7 +61,9 @@ public class TransactionController {
                 request.transactionDate(),
                 request.competenceMonth(),
                 request.status(),
-                request.recurrenceRule());
+                request.recurrenceRule(),
+                request.recurrenceEndDate(),
+                request.tagIds());
         return TransactionResponse.from(transaction);
     }
 
@@ -79,7 +94,8 @@ public class TransactionController {
                         request.description(),
                         request.firstTransactionDate(),
                         request.firstCompetenceMonth(),
-                        request.installments())
+                        request.installments(),
+                        request.tagIds())
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
@@ -88,9 +104,8 @@ public class TransactionController {
     // competenceMonth recebido como String ("2026-08") e parseado manualmente em vez de deixar
     // o Spring MVC converter direto pra YearMonth - evita depender de registro implicito de
     // Converter<String,YearMonth>, que nao e garantido pelo ApplicationConversionService.
-    // accountId/categoryId/type/status são opcionais e combináveis; Spring MVC já converte
-    // TransactionType/TransactionStatus de query param nativamente (enum coberto pelo
-    // conversion service padrão, diferente de YearMonth).
+    // Todos os filtros são opcionais e combináveis (ver TransactionFilter); Spring MVC já
+    // converte enum, UUID, LocalDate ISO e BigDecimal de query param nativamente.
     @GetMapping
     public PagedResponse<TransactionResponse> list(
             @RequestParam(required = false) UUID accountId,
@@ -98,12 +113,47 @@ public class TransactionController {
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) TransactionStatus status,
             @RequestParam(required = false) String competenceMonth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) UUID tagId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        YearMonth month = parseCompetenceMonth(competenceMonth);
+        TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount, tagId);
         Page<Transaction> result = transactionService.search(
-                accountId, categoryId, type, status, month, PageRequest.of(page, Math.min(size, MAX_PAGE_SIZE)));
+                filter, PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE)));
         return PagedResponse.from(result.map(TransactionResponse::from));
+    }
+
+    // Mesmos filtros da listagem, sem paginação (limitado a TransactionCsvExporter.MAX_ROWS).
+    // CSV no formato que o Excel em pt-BR abre direto: ";" como separador, vírgula decimal e
+    // BOM UTF-8 (sem ele o Excel lê acentos como Latin-1).
+    @GetMapping(value = "/export", produces = "text/csv")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(required = false) UUID accountId,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) TransactionStatus status,
+            @RequestParam(required = false) String competenceMonth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) UUID tagId) {
+        TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount, tagId);
+        byte[] csv = csvExporter.export(filter);
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("lancamentos-" + LocalDate.now() + ".csv")
+                        .build()
+                        .toString())
+                .body(csv);
     }
 
     @GetMapping("/{id}")
@@ -111,8 +161,13 @@ public class TransactionController {
         return TransactionResponse.from(transactionService.get(id));
     }
 
+    // scope só importa para ocorrência de lançamento fixo (ver EditScope); default THIS mantém o
+    // contrato anterior para quem não manda o parâmetro.
     @PutMapping("/{id}")
-    public TransactionResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateTransactionRequest request) {
+    public TransactionResponse update(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "THIS") EditScope scope,
+            @Valid @RequestBody UpdateTransactionRequest request) {
         Transaction transaction = transactionService.update(
                 id,
                 request.categoryId(),
@@ -122,8 +177,18 @@ public class TransactionController {
                 request.transactionDate(),
                 request.competenceMonth(),
                 request.status(),
-                request.recurrenceRule());
+                request.recurrenceRule(),
+                scope,
+                request.tagIds());
         return TransactionResponse.from(transaction);
+    }
+
+    // Body opcional: sem ele efetiva com o valor e a data previstos.
+    @PostMapping("/{id}/confirm")
+    public TransactionResponse confirm(
+            @PathVariable UUID id, @Valid @RequestBody(required = false) ConfirmTransactionRequest request) {
+        ConfirmTransactionRequest body = request != null ? request : new ConfirmTransactionRequest(null, null);
+        return TransactionResponse.from(transactionService.confirm(id, body.amount(), body.transactionDate()));
     }
 
     // Nunca hard-deleta (ver Transaction.cancel()) - o verbo HTTP continua DELETE porque, do
@@ -132,8 +197,8 @@ public class TransactionController {
     // pareada quando é transferência (TransactionService.cancel).
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancel(@PathVariable UUID id) {
-        transactionService.cancel(id);
+    public void cancel(@PathVariable UUID id, @RequestParam(defaultValue = "THIS") EditScope scope) {
+        transactionService.cancel(id, scope);
     }
 
     private YearMonth parseCompetenceMonth(String value) {

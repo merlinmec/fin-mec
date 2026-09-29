@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { ENTRY_TYPES } from "@/api/transactions";
 
-const amount = z.number({ message: "Informe um valor válido" }).positive("O valor deve ser maior que zero");
+const amount = z
+  .number({ message: "Informe um valor válido" })
+  .positive("O valor deve ser maior que zero");
 const description = z.string().min(1, "Informe uma descrição").max(255, "Máximo de 255 caracteres");
 const isoDate = z.string().min(1, "Informe a data");
 const yearMonth = z.string().min(1, "Informe a competência");
@@ -17,8 +19,11 @@ export const entrySchema = z.object({
   transactionDate: isoDate,
   competenceMonth: yearMonth,
   status,
-  // "" = sem recorrencia; RecurrenceRule real caso contrario.
+  // "" = sem recorrencia; RecurrenceRule real caso contrario (Fase 11: gera as ocorrencias de verdade).
   recurrenceRule: z.string(),
+  // "" = repete sem data final.
+  recurrenceEndDate: z.string(),
+  tagIds: z.array(z.string()).max(10, "Máximo de 10 tags"),
 });
 
 export type EntryFormValues = z.infer<typeof entrySchema>;
@@ -50,7 +55,10 @@ export const installmentSchema = z.object({
   description,
   firstTransactionDate: isoDate,
   firstCompetenceMonth: yearMonth,
-  installments: z.number({ message: "Informe a quantidade de parcelas" }).int().min(2, "Mínimo de 2 parcelas"),
+  installments: z
+    .number({ message: "Informe a quantidade de parcelas" })
+    .int()
+    .min(2, "Mínimo de 2 parcelas"),
 });
 
 export type InstallmentFormValues = z.infer<typeof installmentSchema>;

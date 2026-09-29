@@ -1,19 +1,27 @@
 package com.mecfin.transaction.domain;
 
 import com.mecfin.shared.domain.RecurrenceRule;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 
 /**
  * Lançamento (receita/despesa/transferência). Referencia account e category só por id
@@ -91,6 +99,26 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     @Column(name = "recurrence_rule", length = 20)
     private RecurrenceRule recurrenceRule;
+
+    // Ocorrência de um lançamento fixo (Fase 11): série de origem + posição dela na série.
+    // Sem updatable=false pelo mesmo motivo de transferPairId: um lançamento avulso que vira
+    // fixo depois (attachToSeries) precisa de um UPDATE genuíno. A imutabilidade depois de
+    // vinculado é garantida pelo próprio attachToSeries, que recusa trocar de série.
+    @Column(name = "recurrence_series_id")
+    private UUID recurrenceSeriesId;
+
+    @Column(name = "recurrence_index")
+    private Integer recurrenceIndex;
+
+    // Tags livres (Fase 13). Coleção de ids, não relação JPA com Tag - mesmo padrão de
+    // referência entre módulos por id solto. EAGER + BatchSize: toda resposta de lançamento
+    // devolve as tags e open-in-view está desligado (LAZY estouraria fora da transação);
+    // BatchSize evita N+1 na listagem paginada.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "transaction_tags", joinColumns = @JoinColumn(name = "transaction_id"))
+    @Column(name = "tag_id")
+    @BatchSize(size = 100)
+    private Set<UUID> tagIds = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -175,6 +203,23 @@ public class Transaction {
                 status, null, null, installmentNumber, installmentTotal, installmentGroupId);
     }
 
+    // Uma ocorrência materializada por RecurringSeriesService. A regra fica copiada na
+    // ocorrência só para exibição (a fonte de verdade da periodicidade é a série).
+    public static Transaction recurrenceOccurrence(
+            RecurringSeries series,
+            int index,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status) {
+        Transaction occurrence = new Transaction(series.getAccountId(), series.getCategoryId(), series.getType(),
+                series.getAmount(), series.getDescription(), transactionDate, competenceMonth, status,
+                series.getRecurrenceRule(), null, null, null, null);
+        occurrence.recurrenceSeriesId = series.getId();
+        occurrence.recurrenceIndex = index;
+        occurrence.tagIds.addAll(series.getTagIds());
+        return occurrence;
+    }
+
     // Chamado só por TransactionService.createTransfer, depois que as duas pernas já têm id
     // (transferPairId é uma referência mútua - não dá pra setar no construtor de nenhuma
     // das duas). Público por convenção do projeto (nenhuma entidade daqui usa visibilidade
@@ -205,6 +250,54 @@ public class Transaction {
         this.status = status;
         this.recurrenceRule = recurrenceRule;
         touch();
+    }
+
+    // Efetiva um lançamento previsto (PENDING -> POSTED): é o "confirmar pagamento/recebimento"
+    // de uma ocorrência de fixo. Valor e data reais podem diferir do previsto (conta de luz).
+    public void confirm(BigDecimal actualAmount, LocalDate actualDate) {
+        if (status != TransactionStatus.PENDING) {
+            throw new IllegalArgumentException("Só é possível efetivar um lançamento pendente (status atual: " + status + ")");
+        }
+        if (actualAmount != null) {
+            this.amount = actualAmount;
+        }
+        if (actualDate != null) {
+            this.transactionDate = actualDate;
+        }
+        this.status = TransactionStatus.POSTED;
+        touch();
+    }
+
+    // Aplica o molde novo da série numa ocorrência ainda pendente (edição "esta e as próximas").
+    public void applyTemplate(
+            UUID categoryId, TransactionType type, BigDecimal amount, String description, Set<UUID> tags) {
+        this.categoryId = categoryId;
+        this.type = type;
+        this.amount = amount;
+        this.description = description;
+        replaceTags(tags);
+    }
+
+    // Tags já validadas (TagService.requireOwned) - a entidade só guarda os ids.
+    public void replaceTags(Set<UUID> tags) {
+        this.tagIds.clear();
+        this.tagIds.addAll(tags);
+        touch();
+    }
+
+    // Um lançamento avulso que passa a ser fixo vira a ocorrência 0 da série nova.
+    public void attachToSeries(RecurringSeries series, int index) {
+        if (recurrenceSeriesId != null) {
+            throw new IllegalArgumentException("Lançamento já pertence a uma série de recorrência");
+        }
+        this.recurrenceSeriesId = series.getId();
+        this.recurrenceIndex = index;
+        this.recurrenceRule = series.getRecurrenceRule();
+        touch();
+    }
+
+    public boolean isRecurrenceOccurrence() {
+        return recurrenceSeriesId != null;
     }
 
     // Nunca hard-delete após POSTED - só cancela (estorno), preservando integridade de
@@ -277,6 +370,18 @@ public class Transaction {
 
     public RecurrenceRule getRecurrenceRule() {
         return recurrenceRule;
+    }
+
+    public UUID getRecurrenceSeriesId() {
+        return recurrenceSeriesId;
+    }
+
+    public Integer getRecurrenceIndex() {
+        return recurrenceIndex;
+    }
+
+    public Set<UUID> getTagIds() {
+        return Collections.unmodifiableSet(tagIds);
     }
 
     public Instant getCreatedAt() {

@@ -3,6 +3,10 @@ package com.mecfin.transaction.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.mecfin.account.application.AccountNotFoundException;
@@ -10,7 +14,9 @@ import com.mecfin.account.application.AccountService;
 import com.mecfin.account.domain.Account;
 import com.mecfin.account.domain.AccountType;
 import com.mecfin.category.infra.CategoryRepository;
+import com.mecfin.shared.domain.RecurrenceRule;
 import com.mecfin.shared.security.AuthenticatedPrincipal;
+import com.mecfin.tag.application.TagService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;
@@ -46,6 +52,12 @@ class TransactionServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private RecurringSeriesService recurringSeriesService;
+
+    @Mock
+    private TagService tagService;
+
     private final UUID householdId = UUID.randomUUID();
     private final UUID accountId = UUID.randomUUID();
 
@@ -62,7 +74,8 @@ class TransactionServiceTest {
     }
 
     private TransactionService service() {
-        return new TransactionService(transactionRepository, accountService, categoryRepository);
+        return new TransactionService(transactionRepository, accountService, categoryRepository, recurringSeriesService,
+                tagService);
     }
 
     private void stubAccountVisible(UUID id) {
@@ -149,7 +162,7 @@ class TransactionServiceTest {
 
         List<Transaction> legs = service().createInstallments(
                 accountId, null, TransactionType.EXPENSE, new BigDecimal("100.00"), "TV",
-                LocalDate.of(2026, 8, 10), firstMonth, 3);
+                LocalDate.of(2026, 8, 10), firstMonth, 3, null);
 
         assertThat(legs).hasSize(3);
         assertThat(legs.get(0).getDescription()).isEqualTo("TV (1/3)");
@@ -165,7 +178,7 @@ class TransactionServiceTest {
     void createInstallmentsWithFewerThanTwoThrows() {
         assertThatThrownBy(() -> service().createInstallments(
                 accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "TV",
-                LocalDate.now(), YearMonth.now(), 1))
+                LocalDate.now(), YearMonth.now(), 1, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -191,7 +204,7 @@ class TransactionServiceTest {
 
         assertThatThrownBy(() -> service().update(
                 transactionId, null, TransactionType.EXPENSE, BigDecimal.ONE, "Hack",
-                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null))
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null, EditScope.THIS, null))
                 .isInstanceOf(TransferNotEditableException.class);
     }
 
@@ -205,7 +218,7 @@ class TransactionServiceTest {
         when(transactionRepository.findByIdAndAccountIdIn(transactionId, List.of(accountId)))
                 .thenReturn(Optional.of(transaction));
 
-        service().cancel(transactionId);
+        service().cancel(transactionId, EditScope.THIS);
 
         assertThat(transaction.getStatus()).isEqualTo(TransactionStatus.CANCELED);
     }
@@ -226,9 +239,69 @@ class TransactionServiceTest {
         when(transactionRepository.findByIdAndAccountIdIn(outId, List.of(accountId))).thenReturn(Optional.of(outLeg));
         when(transactionRepository.findByIdAndAccountIdIn(inId, List.of(accountId))).thenReturn(Optional.of(inLeg));
 
-        service().cancel(outId);
+        service().cancel(outId, EditScope.THIS);
 
         assertThat(outLeg.getStatus()).isEqualTo(TransactionStatus.CANCELED);
         assertThat(inLeg.getStatus()).isEqualTo(TransactionStatus.CANCELED);
+    }
+
+    @Test
+    void createWithRecurrenceRuleDelegatesToSeriesEngine() {
+        stubAccountVisible(accountId);
+        Transaction first = Transaction.of(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Aluguel",
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null);
+        when(recurringSeriesService.start(any(), eq(TransactionStatus.POSTED), eq(YearMonth.now()))).thenReturn(first);
+
+        Transaction result = service().create(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Aluguel",
+                LocalDate.now(), YearMonth.now(), null, RecurrenceRule.MONTHLY, null, null);
+
+        assertThat(result).isSameAs(first);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void editingLegacyRecurrenceMetadataDoesNotStartASeries() {
+        UUID transactionId = UUID.randomUUID();
+        // Lançamento da Fase 10: recurrence_rule como metadado puro, sem série.
+        Transaction legacy = Transaction.of(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Academia",
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, RecurrenceRule.MONTHLY);
+        when(accountService.householdAccountIds()).thenReturn(List.of(accountId));
+        when(transactionRepository.findByIdAndAccountIdIn(transactionId, List.of(accountId)))
+                .thenReturn(Optional.of(legacy));
+
+        service().update(transactionId, null, TransactionType.EXPENSE, new BigDecimal("12.00"), "Academia",
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, RecurrenceRule.MONTHLY, EditScope.THIS,
+                null);
+
+        verifyNoInteractions(recurringSeriesService);
+        assertThat(legacy.getRecurrenceRule()).isEqualTo(RecurrenceRule.MONTHLY);
+        assertThat(legacy.getAmount()).isEqualByComparingTo("12.00");
+    }
+
+    @Test
+    void thisAndFutureScopeOnStandaloneTransactionIsRejected() {
+        UUID transactionId = UUID.randomUUID();
+        Transaction standalone = Transaction.of(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Mercado",
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null);
+        when(accountService.householdAccountIds()).thenReturn(List.of(accountId));
+        when(transactionRepository.findByIdAndAccountIdIn(transactionId, List.of(accountId)))
+                .thenReturn(Optional.of(standalone));
+
+        assertThatThrownBy(() -> service().cancel(transactionId, EditScope.THIS_AND_FUTURE))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(standalone.getStatus()).isEqualTo(TransactionStatus.POSTED);
+    }
+
+    @Test
+    void confirmOnlyAcceptsPendingTransactions() {
+        UUID transactionId = UUID.randomUUID();
+        Transaction posted = Transaction.of(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Mercado",
+                LocalDate.now(), YearMonth.now(), TransactionStatus.POSTED, null);
+        when(accountService.householdAccountIds()).thenReturn(List.of(accountId));
+        when(transactionRepository.findByIdAndAccountIdIn(transactionId, List.of(accountId)))
+                .thenReturn(Optional.of(posted));
+
+        assertThatThrownBy(() -> service().confirm(transactionId, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

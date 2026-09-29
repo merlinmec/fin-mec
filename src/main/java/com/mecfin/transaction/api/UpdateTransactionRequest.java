@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 // type continua editável aqui (INCOME/EXPENSE), mas nunca TRANSFER - TransactionService
@@ -22,5 +23,19 @@ public record UpdateTransactionRequest(
         @NotNull LocalDate transactionDate,
         @NotNull YearMonth competenceMonth,
         @NotNull TransactionStatus status,
-        RecurrenceRule recurrenceRule) {
+        RecurrenceRule recurrenceRule,
+        // null = mantém as tags atuais; lista vazia = remove todas.
+        @Size(max = 10) List<UUID> tagIds) {
+
+    public UpdateTransactionRequest(
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            YearMonth competenceMonth,
+            TransactionStatus status,
+            RecurrenceRule recurrenceRule) {
+        this(categoryId, type, amount, description, transactionDate, competenceMonth, status, recurrenceRule, null);
+    }
 }
