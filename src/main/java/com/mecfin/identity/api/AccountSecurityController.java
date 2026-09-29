@@ -151,14 +151,7 @@ public class AccountSecurityController {
         return accountSecurityService.load(CurrentUser.id()).getEmail();
     }
 
-    // Apaga as demais sessões do banco e renova a atual. O carimbo de segurança já as tornaria
-    // inválidas na próxima requisição; apagar é higiene (somem da lista "sessões ativas" na hora).
-    // A ORDEM importa: o Spring Session só grava o id novo (changeSessionId) no fim da requisição
-    // — apagar "as outras" depois da troca apagaria a própria sessão atual, ainda salva sob o id
-    // antigo, e deslogaria o usuário.
     private void refreshSession(HttpServletRequest request, HttpServletResponse response, UUID userId) {
-        String email = accountSecurityService.load(userId).getEmail();
-        sessionService.deleteOthers(email, request.getSession().getId());
-        sessionEstablisher.establish(request, response, email);
+        sessionEstablisher.refresh(request, response, accountSecurityService.load(userId).getEmail());
     }
 }
