@@ -32,6 +32,7 @@ public record TransactionResponse(
         Integer recurrenceIndex,
         Set<UUID> tagIds,
         UUID createdBy,
+        int attachmentCount,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -56,6 +57,7 @@ public record TransactionResponse(
                 transaction.getRecurrenceIndex(),
                 Set.copyOf(transaction.getTagIds()),
                 transaction.getCreatedBy(),
+                transaction.getAttachmentCount(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt());
     }
