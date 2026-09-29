@@ -75,6 +75,13 @@ export const router = createBrowserRouter([
             errorElement: <RouteErrorBoundary />,
           },
           {
+            path: "convite",
+            lazy: async () => ({
+              Component: (await import("@/routes/household/InvitePage")).InvitePage,
+            }),
+            errorElement: <RouteErrorBoundary />,
+          },
+          {
             path: "bancos",
             lazy: async () => ({
               Component: (await import("@/routes/banks/BankConnectionsPage")).BankConnectionsPage,

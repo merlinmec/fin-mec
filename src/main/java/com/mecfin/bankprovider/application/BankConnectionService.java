@@ -11,7 +11,7 @@ import com.mecfin.bankprovider.domain.BankInstitution;
 import com.mecfin.bankprovider.infra.BankAccountLinkRepository;
 import com.mecfin.bankprovider.infra.BankConnectionRepository;
 import com.mecfin.bankprovider.infra.BankInstitutionRepository;
-import com.mecfin.identity.domain.UserDeletingEvent;
+import com.mecfin.household.domain.HouseholdErasingEvent;
 import com.mecfin.shared.exception.ConflictException;
 import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.shared.exception.UpstreamUnavailableException;
@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -192,19 +191,19 @@ public class BankConnectionService {
     }
 
     /**
-     * Exclusão de conta (LGPD): antes do household apagar as linhas, remove as conexões também no
-     * provedor — senão o acesso ao banco continuaria autorizado lá fora. @Order(0) roda antes do
-     * listener do household (que apaga os dados).
+     * O household vai ser apagado (exclusão da conta do último membro, ou troca do household
+     * pessoal por um compartilhado): remove as conexões também no provedor — senão o acesso ao
+     * banco continuaria autorizado lá fora. Antes da Fase 17 isto reagia à exclusão de QUALQUER
+     * usuário e, num household compartilhado, desconectaria o banco de todo mundo.
      */
     @EventListener
-    @Order(0)
-    public void onUserDeleting(UserDeletingEvent event) {
-        for (BankConnection connection : connections.findAllByHouseholdId(CurrentUser.householdId())) {
+    public void onHouseholdErasing(HouseholdErasingEvent event) {
+        for (BankConnection connection : connections.findAllByHouseholdId(event.householdId())) {
             if (connection.getStatus() != BankConnectionStatus.DISCONNECTED) {
                 try {
                     provider.deleteItem(connection.getExternalItemId());
                 } catch (RuntimeException e) {
-                    log.warn("Falha ao remover o item {} no provedor na exclusão de conta",
+                    log.warn("Falha ao remover o item {} no provedor ao apagar o household",
                             connection.getExternalItemId(), e);
                 }
             }
