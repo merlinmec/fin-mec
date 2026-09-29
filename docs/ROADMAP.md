@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026 (Fases 15 a 18 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fases 15 a 19 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -146,12 +146,24 @@ apps de finanças.
 - **Pendente (decisão do usuário):** provedor da VPS e domínio — o compose roda em qualquer VPS
   com Docker.
 
-### Fase 19: Inteligência
+### Fase 19: Inteligência — ✔ entregue
 - Previsão de saldo para 30/60/90 dias a partir dos fixos (curva, não só o fim
   do mês).
 - Alertas: gasto de categoria acima da média, orçamento a 80%, fatura acima do
   normal.
 - Resumo mensal automático ("você guardou 18% da renda em setembro").
+
+- **Entregue:** módulo `insight`, só leitura e derivado na hora (nada persistido além dos alertas
+  no sino). Curva diária a partir do saldo disponível aplicando previstos, lançamentos com data
+  futura, contas a pagar e faturas em aberto; atrasados contam hoje; destaque para o primeiro dia
+  negativo e o ponto mais baixo. Resumo do último mês fechado com frases prontas geradas no
+  backend (regras e limiares testados lá, não no front). Alertas entregues ao sino por uma porta
+  (`NotificationSource`) — a notificação não depende de orçamento/relatório/cartão; unicidade do
+  alerta ganhou período para "categoria acima da média" poder voltar no mês seguinte.
+- **Limiares (para não virar spam):** orçamento a 80% e a 100%; categoria 50% acima da média dos 3
+  meses anteriores, só se a média passa de R$ 100 e houve gasto em pelo menos 2 desses meses;
+  fatura 30% e R$ 50 acima da média das últimas pagas (mínimo 2). No resumo, aumento de
+  categoria abaixo de R$ 50 não é notícia, e percentual acima de 200% é trocado pelo valor.
 
 ### Fase 20: Mobile e conveniência
 - PWA instalável com cache offline das telas de leitura; atalho de lançamento

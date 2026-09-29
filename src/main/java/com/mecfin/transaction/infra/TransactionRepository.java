@@ -127,6 +127,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     List<Transaction> findForStatementMatching(
             @Param("accountId") UUID accountId, @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 
+    // Previsão de saldo (Fase 19): o que ainda vai mexer no saldo disponível até :untilDate -
+    // previstos (PENDING, inclusive atrasados) e efetivados com data futura. Transferência fica de
+    // fora: entre contas do próprio household o efeito no total é zero.
+    @Query("SELECT t FROM Transaction t WHERE t.accountId IN :accountIds "
+            + "AND t.type <> com.mecfin.transaction.domain.TransactionType.TRANSFER "
+            + "AND t.transactionDate <= :untilDate "
+            + "AND (t.status = com.mecfin.transaction.domain.TransactionStatus.PENDING "
+            + "OR (t.status = com.mecfin.transaction.domain.TransactionStatus.POSTED AND t.transactionDate > :today)) "
+            + "ORDER BY t.transactionDate")
+    List<Transaction> findScheduledUntil(
+            @Param("accountIds") List<UUID> accountIds, @Param("today") LocalDate today,
+            @Param("untilDate") LocalDate untilDate);
+
     @Query("SELECT t FROM Transaction t WHERE t.accountId IN :accountIds AND t.categoryId IS NOT NULL "
             + "AND t.status <> com.mecfin.transaction.domain.TransactionStatus.CANCELED "
             + "AND t.type <> com.mecfin.transaction.domain.TransactionType.TRANSFER "

@@ -15,3 +15,9 @@ export function formatShortMonth(yearMonth: string): string {
     .replace(".", "");
   return `${month}/${String(y).slice(2)}`;
 }
+
+/** yyyy-MM-dd -> "12/11". */
+export function formatDayMonth(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
