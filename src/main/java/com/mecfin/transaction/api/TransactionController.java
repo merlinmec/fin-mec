@@ -2,18 +2,28 @@ package com.mecfin.transaction.api;
 
 import com.mecfin.shared.web.PagedResponse;
 import com.mecfin.transaction.application.EditScope;
+import com.mecfin.transaction.application.TransactionCsvExporter;
+import com.mecfin.transaction.application.TransactionFilter;
 import com.mecfin.transaction.application.TransactionService;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,9 +42,11 @@ public class TransactionController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final TransactionService transactionService;
+    private final TransactionCsvExporter csvExporter;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, TransactionCsvExporter csvExporter) {
         this.transactionService = transactionService;
+        this.csvExporter = csvExporter;
     }
 
     @PostMapping
@@ -90,9 +102,8 @@ public class TransactionController {
     // competenceMonth recebido como String ("2026-08") e parseado manualmente em vez de deixar
     // o Spring MVC converter direto pra YearMonth - evita depender de registro implicito de
     // Converter<String,YearMonth>, que nao e garantido pelo ApplicationConversionService.
-    // accountId/categoryId/type/status são opcionais e combináveis; Spring MVC já converte
-    // TransactionType/TransactionStatus de query param nativamente (enum coberto pelo
-    // conversion service padrão, diferente de YearMonth).
+    // Todos os filtros são opcionais e combináveis (ver TransactionFilter); Spring MVC já
+    // converte enum, UUID, LocalDate ISO e BigDecimal de query param nativamente.
     @GetMapping
     public PagedResponse<TransactionResponse> list(
             @RequestParam(required = false) UUID accountId,
@@ -100,12 +111,45 @@ public class TransactionController {
             @RequestParam(required = false) TransactionType type,
             @RequestParam(required = false) TransactionStatus status,
             @RequestParam(required = false) String competenceMonth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        YearMonth month = parseCompetenceMonth(competenceMonth);
+        TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount);
         Page<Transaction> result = transactionService.search(
-                accountId, categoryId, type, status, month, PageRequest.of(page, Math.min(size, MAX_PAGE_SIZE)));
+                filter, PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE)));
         return PagedResponse.from(result.map(TransactionResponse::from));
+    }
+
+    // Mesmos filtros da listagem, sem paginação (limitado a TransactionCsvExporter.MAX_ROWS).
+    // CSV no formato que o Excel em pt-BR abre direto: ";" como separador, vírgula decimal e
+    // BOM UTF-8 (sem ele o Excel lê acentos como Latin-1).
+    @GetMapping(value = "/export", produces = "text/csv")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(required = false) UUID accountId,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) TransactionStatus status,
+            @RequestParam(required = false) String competenceMonth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount) {
+        TransactionFilter filter = new TransactionFilter(accountId, categoryId, type, status,
+                parseCompetenceMonth(competenceMonth), from, to, q, minAmount, maxAmount);
+        byte[] csv = csvExporter.export(filter);
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("lancamentos-" + LocalDate.now() + ".csv")
+                        .build()
+                        .toString())
+                .body(csv);
     }
 
     @GetMapping("/{id}")
