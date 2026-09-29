@@ -110,6 +110,14 @@ public class Transaction {
     @Column(name = "recurrence_index")
     private Integer recurrenceIndex;
 
+    // Origem num extrato importado (Fase 15): FITID do OFX ou hash da linha do CSV. Único por
+    // conta (índice parcial no banco) — é o que torna reimportar o mesmo arquivo inofensivo.
+    @Column(name = "external_id", length = 120)
+    private String externalId;
+
+    @Column(name = "import_batch_id")
+    private UUID importBatchId;
+
     // Tags livres (Fase 13). Coleção de ids, não relação JPA com Tag - mesmo padrão de
     // referência entre módulos por id solto. EAGER + BatchSize: toda resposta de lançamento
     // devolve as tags e open-in-view está desligado (LAZY estouraria fora da transação);
@@ -218,6 +226,41 @@ public class Transaction {
         occurrence.recurrenceIndex = index;
         occurrence.tagIds.addAll(series.getTagIds());
         return occurrence;
+    }
+
+    // Lançamento criado a partir de uma linha de extrato importado (Fase 15). Sempre POSTED: o
+    // extrato é o registro do que já aconteceu na conta.
+    public static Transaction imported(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            LocalDate transactionDate,
+            String externalId,
+            UUID importBatchId) {
+        Transaction transaction = new Transaction(accountId, categoryId, type, amount, description, transactionDate,
+                YearMonth.from(transactionDate), TransactionStatus.POSTED, null, null, null, null, null);
+        transaction.externalId = externalId;
+        transaction.importBatchId = importBatchId;
+        return transaction;
+    }
+
+    // Um lançamento previsto (tipicamente ocorrência de fixo) confirmado por uma linha do extrato:
+    // efetiva com o valor/data reais e guarda a origem, para a reimportação reconhecer a linha.
+    // Não recebe o import_batch_id de propósito: o lançamento existia antes da importação, então
+    // "desfazer importação" (que cancela o que o lote criou) não deve apagá-lo.
+    public void confirmFromStatement(BigDecimal actualAmount, LocalDate actualDate, String externalId) {
+        confirm(actualAmount, actualDate);
+        this.externalId = externalId;
+    }
+
+    // "Desfazer importação": o lançamento criado pelo lote é cancelado e perde o vínculo com o
+    // extrato, para que reimportar o arquivo depois volte a criá-lo normalmente.
+    public void undoImport() {
+        this.status = TransactionStatus.CANCELED;
+        this.externalId = null;
+        touch();
     }
 
     // Chamado só por TransactionService.createTransfer, depois que as duas pernas já têm id
@@ -378,6 +421,14 @@ public class Transaction {
 
     public Integer getRecurrenceIndex() {
         return recurrenceIndex;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public UUID getImportBatchId() {
+        return importBatchId;
     }
 
     public Set<UUID> getTagIds() {
