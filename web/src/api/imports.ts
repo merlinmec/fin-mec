@@ -3,6 +3,9 @@ import type { EntryType } from "./transactions";
 
 export type ImportFormat = "OFX" | "CSV";
 
+/** Formato do lote no histórico: inclui os lotes gerados pela sincronização bancária (Fase 16). */
+export type ImportBatchFormat = ImportFormat | "BANK_SYNC";
+
 /** Espelha com.mecfin.importing.application.PreviewStatus. */
 export type PreviewStatus = "NEW" | "ALREADY_IMPORTED" | "POSSIBLE_DUPLICATE" | "MATCHES_PENDING";
 
@@ -67,7 +70,7 @@ export interface ImportBatch {
   id: string;
   accountId: string;
   fileName: string;
-  format: ImportFormat;
+  format: ImportBatchFormat;
   createdCount: number;
   matchedCount: number;
   skippedCount: number;

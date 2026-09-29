@@ -9,6 +9,7 @@ import {
   CreditCard,
   Eye,
   FileUp,
+  Landmark,
   LayoutDashboard,
   ListOrdered,
   Minus,
@@ -51,6 +52,12 @@ const PAGES: { label: string; to: string; icon: LucideIcon; keywords?: string }[
   },
   { label: "Orçamento", to: "/orcamento", icon: PiggyBank, keywords: "limite planejamento" },
   { label: "Metas", to: "/metas", icon: Target, keywords: "objetivos economia cofrinho" },
+  {
+    label: "Bancos conectados",
+    to: "/bancos",
+    icon: Landmark,
+    keywords: "open finance pluggy sincronizar conectar banco",
+  },
   { label: "Importar extrato", to: "/importar", icon: FileUp, keywords: "ofx csv banco upload" },
   { label: "Categorias", to: "/categorias", icon: Shapes },
   {

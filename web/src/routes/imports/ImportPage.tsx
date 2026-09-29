@@ -7,6 +7,7 @@ import {
   Copy,
   FileUp,
   History,
+  Landmark,
   Link2,
   RefreshCw,
   Sparkles,
@@ -688,8 +689,15 @@ function ImportHistory() {
             key={b.id}
             className={cn("flex items-center gap-3 px-1 py-2.5", b.undoneAt && "opacity-60")}
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <History className="size-4" />
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+              title={b.format === "BANK_SYNC" ? "Sincronização bancária" : `Arquivo ${b.format}`}
+            >
+              {b.format === "BANK_SYNC" ? (
+                <Landmark className="size-4" />
+              ) : (
+                <History className="size-4" />
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">{b.fileName}</div>
