@@ -52,6 +52,16 @@ export function loginMfa(code: string): Promise<CurrentUser> {
   return api.post<CurrentUser>("/auth/login/mfa", { code });
 }
 
+/** POST /api/auth/password/forgot — 202 sempre, exista a conta ou não. */
+export function forgotPassword(email: string): Promise<void> {
+  return api.post<void>("/auth/password/forgot", { email });
+}
+
+/** POST /api/auth/password/reset — token do link do e-mail. */
+export function resetPassword(token: string, newPassword: string): Promise<void> {
+  return api.post<void>("/auth/password/reset", { token, newPassword });
+}
+
 /** POST /api/auth/logout — invalida a sessao no backend (204 No Content). */
 export function logoutUser(): Promise<void> {
   return api.post<void>("/auth/logout");

@@ -4,6 +4,9 @@ import com.mecfin.identity.application.AccountSecurityService;
 import com.mecfin.identity.application.ClientInfo;
 import com.mecfin.identity.application.MfaService;
 import com.mecfin.identity.application.SecurityEventService;
+import com.mecfin.identity.application.SessionService;
+import com.mecfin.identity.domain.SecurityEventType;
+import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.identity.domain.User;
 import com.mecfin.shared.security.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +17,9 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,13 +38,30 @@ public class AccountSecurityController {
     private final MfaService mfaService;
     private final SecurityEventService securityEvents;
     private final SessionEstablisher sessionEstablisher;
+    private final SessionService sessionService;
 
     public AccountSecurityController(AccountSecurityService accountSecurityService, MfaService mfaService,
-            SecurityEventService securityEvents, SessionEstablisher sessionEstablisher) {
+            SecurityEventService securityEvents, SessionEstablisher sessionEstablisher, SessionService sessionService) {
         this.accountSecurityService = accountSecurityService;
         this.mfaService = mfaService;
         this.securityEvents = securityEvents;
         this.sessionEstablisher = sessionEstablisher;
+        this.sessionService = sessionService;
+    }
+
+    /** Sessões ativas (Fase 18). O id devolvido é uma impressão digital, nunca o id real. */
+    @GetMapping("/sessions")
+    public List<SessionService.SessionInfo> sessions(HttpServletRequest httpRequest) {
+        return sessionService.list(currentEmail(), httpRequest.getSession().getId());
+    }
+
+    @DeleteMapping("/sessions/{fingerprint}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void endSession(@PathVariable String fingerprint, HttpServletRequest httpRequest) {
+        if (!sessionService.delete(currentEmail(), fingerprint, httpRequest.getSession().getId())) {
+            throw new NotFoundException("Sessão não encontrada");
+        }
+        securityEvents.record(CurrentUser.id(), SecurityEventType.SESSION_ENDED, AuthController.client(httpRequest));
     }
 
     @GetMapping("/security")
@@ -114,6 +136,7 @@ public class AccountSecurityController {
     @PostMapping("/delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAccount(@Valid @RequestBody ReauthenticationRequest request, HttpServletRequest httpRequest) {
+        String email = currentEmail();
         accountSecurityService.deleteAccount(CurrentUser.id(), request.password(), request.code(),
                 AuthController.client(httpRequest));
         SecurityContextHolder.clearContext();
@@ -121,9 +144,21 @@ public class AccountSecurityController {
         if (session != null) {
             session.invalidate();
         }
+        sessionService.deleteAll(email);
     }
 
+    private String currentEmail() {
+        return accountSecurityService.load(CurrentUser.id()).getEmail();
+    }
+
+    // Apaga as demais sessões do banco e renova a atual. O carimbo de segurança já as tornaria
+    // inválidas na próxima requisição; apagar é higiene (somem da lista "sessões ativas" na hora).
+    // A ORDEM importa: o Spring Session só grava o id novo (changeSessionId) no fim da requisição
+    // — apagar "as outras" depois da troca apagaria a própria sessão atual, ainda salva sob o id
+    // antigo, e deslogaria o usuário.
     private void refreshSession(HttpServletRequest request, HttpServletResponse response, UUID userId) {
-        sessionEstablisher.establish(request, response, accountSecurityService.load(userId).getEmail());
+        String email = accountSecurityService.load(userId).getEmail();
+        sessionService.deleteOthers(email, request.getSession().getId());
+        sessionEstablisher.establish(request, response, email);
     }
 }
