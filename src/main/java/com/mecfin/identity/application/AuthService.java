@@ -110,7 +110,15 @@ public class AuthService {
 
     @Transactional
     public void registerSuccess(UUID userId, ClientInfo client) {
-        userRepository.findById(userId).ifPresent(User::resetFailedLogins);
+        userRepository.findById(userId).ifPresent(user -> {
+            user.resetFailedLogins();
+            // Fase 18: login de um navegador/dispositivo nunca visto avisa o dono por e-mail —
+            // se a senha vazou, é assim que ele descobre.
+            if (securityEvents.isNewDevice(userId, client.userAgent())) {
+                eventPublisher.publishEvent(new SecurityAlertEvent(SecurityAlertEvent.Kind.NEW_DEVICE_LOGIN,
+                        user.getEmail(), UserAgents.describe(client.userAgent()), client.ipAddress(), clock.instant()));
+            }
+        });
         securityEvents.record(userId, SecurityEventType.LOGIN_SUCCESS, client);
     }
 
