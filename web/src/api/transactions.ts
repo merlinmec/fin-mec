@@ -59,6 +59,8 @@ export interface Transaction {
   recurrenceSeriesId: string | null;
   recurrenceIndex: number | null;
   tagIds: string[];
+  /** Quem lançou (Fase 17); null = automático (banco, recorrência) ou conta excluída. */
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 }

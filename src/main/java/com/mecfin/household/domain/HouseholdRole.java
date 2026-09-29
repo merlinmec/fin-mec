@@ -1,8 +1,8 @@
 package com.mecfin.household.domain;
 
 /**
- * OWNER é criado automaticamente no registro (Fase 2); MEMBER existe no schema
- * desde já mas só passa a ser atribuído quando o fluxo de convite for implementado.
+ * OWNER é criado automaticamente no registro (Fase 2) e é o único que convida, remove,
+ * renomeia e transfere a posse. MEMBER é quem entra por convite (Fase 17): vê e lança em tudo.
  */
 public enum HouseholdRole {
     OWNER,

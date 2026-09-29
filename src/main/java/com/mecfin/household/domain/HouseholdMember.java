@@ -13,10 +13,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Vínculo entre um {@link Household} e um usuário. No MVP existe sempre
- * exatamente um membro por household (o próprio dono, papel OWNER, criado
- * junto do household no registro) — a tabela já suporta um segundo membro
- * (MEMBER) quando o convite for implementado.
+ * Vínculo entre um {@link Household} e um usuário. Todo household nasce com o dono (OWNER),
+ * criado junto no registro; desde a Fase 17 outros usuários entram por convite como MEMBER.
+ * Um usuário participa de um household por vez (índice único em user_id).
  */
 @Entity
 @Table(name = "household_members", uniqueConstraints = @UniqueConstraint(columnNames = {"household_id", "user_id"}))
@@ -47,6 +46,10 @@ public class HouseholdMember {
         this.userId = userId;
         this.role = role;
         this.joinedAt = Instant.now();
+    }
+
+    public void changeRole(HouseholdRole role) {
+        this.role = role;
     }
 
     public UUID getId() {

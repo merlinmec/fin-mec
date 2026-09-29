@@ -325,4 +325,33 @@ class OpenFinanceIT {
             pluggy.down = false;
         }
     }
+    @Test
+    void memberLeavingASharedHouseholdDoesNotRevokeTheSharedBank() {
+        AuthenticatedTestUser owner = registerUser();
+        String itemId = connectedItem(owner, "10.00");
+        register(owner, itemId);
+        AuthenticatedTestUser member = registerUser();
+        String url = json(owner, client.post().uri("/api/household/invites"))
+                .body(Map.of("email", member.email()))
+                .exchange().expectStatus().isCreated()
+                .expectBody(new ParameterizedTypeReference<Map<String, Object>>() {
+                })
+                .returnResult().getResponseBody().get("acceptUrl").toString();
+        var accepted = json(member, client.post().uri("/api/household/invites/accept"))
+                .body(Map.of("token", url.substring(url.indexOf("token=") + 6), "discardPersonalData", false))
+                .exchange().expectStatus().isOk().expectBody().returnResult();
+        String memberSession = accepted.getResponseCookies().getFirst("JSESSIONID").getValue();
+
+        client.post().uri("/api/account/delete").contentType(MediaType.APPLICATION_JSON)
+                .cookie("JSESSIONID", memberSession)
+                .cookie("XSRF-TOKEN", member.csrfToken()).header("X-XSRF-TOKEN", member.csrfToken())
+                .body(Map.of("password", "s3cret1234"))
+                .exchange().expectStatus().isNoContent();
+        assertThat(pluggy.deletedItems).doesNotContain(itemId);
+
+        json(owner, client.post().uri("/api/account/delete"))
+                .body(Map.of("password", "s3cret1234"))
+                .exchange().expectStatus().isNoContent();
+        assertThat(pluggy.deletedItems).contains(itemId);
+    }
 }

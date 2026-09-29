@@ -1,6 +1,12 @@
 spring:
   profiles:
     active: dev
+  # Igual ao main: sem isto o Hibernate nunca confere entidade x schema nos testes, e um tipo
+  # de coluna errado só aparecia no boot real (aconteceu na Fase 8 e de novo na Fase 17).
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
 
 # Mesmo nome de cookie do main (Spring Session usaria "SESSION"): este arquivo substitui o de main.
 server:

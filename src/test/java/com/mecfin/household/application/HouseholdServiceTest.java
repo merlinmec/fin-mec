@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,9 +33,13 @@ class HouseholdServiceTest {
     @Mock
     private HouseholdDataEraser householdDataEraser;
 
+    @Mock
+    private ApplicationEventPublisher events;
+
     @Test
     void onUserRegisteredCreatesHouseholdWithOwnerMembership() {
-        HouseholdService service = new HouseholdService(householdRepository, householdMemberRepository, householdDataEraser);
+        HouseholdService service = new HouseholdService(householdRepository, householdMemberRepository, householdDataEraser,
+                events);
         UUID userId = UUID.randomUUID();
         UUID householdId = UUID.randomUUID();
         Household household = new Household("Financeiro de user@example.com");
