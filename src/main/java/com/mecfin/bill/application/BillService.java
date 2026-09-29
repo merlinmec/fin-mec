@@ -111,7 +111,26 @@ public class BillService {
                 payingAccountId, bill.getCategoryId(), TransactionType.EXPENSE, amount, bill.getDescription(),
                 paymentDate, YearMonth.from(paymentDate), TransactionStatus.POSTED, null);
         bill.pay(transaction.getId());
+        scheduleNextOccurrence(bill);
         return new BillView(bill);
+    }
+
+    // Conta recorrente (Fase 11): pagar a ocorrência atual cria a próxima, com o mesmo valor
+    // previsto e o vencimento avançado pela regra. Idempotente por construção - pay() só roda
+    // uma vez por bill (requireOpen). Cancelar uma conta recorrente não gera a próxima: é o
+    // jeito de encerrar a recorrência.
+    private void scheduleNextOccurrence(Bill paid) {
+        if (paid.getRecurrenceRule() == null) {
+            return;
+        }
+        billRepository.save(new Bill(
+                paid.getHouseholdId(),
+                paid.getDescription(),
+                paid.getAmount(),
+                paid.getRecurrenceRule().occurrence(paid.getDueDate(), 1),
+                paid.getSourceAccountId(),
+                paid.getCategoryId(),
+                paid.getRecurrenceRule()));
     }
 
     @Transactional
