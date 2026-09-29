@@ -6,12 +6,17 @@ import { useMarkNotificationRead, useNotifications, useSyncNotifications } from 
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
+interface NotificationBellProps {
+  /** Sobrescreve o estilo do botão-sino — o AppShell passa isso pra ficar legível sobre o topbar verde (variant="ghost" puro assume fundo claro). */
+  triggerClassName?: string;
+}
+
 /**
  * Sino de notificacoes do topbar (AppShell) — nao ha uma NotificationsPage
  * dedicada. Sincroniza sob demanda: uma vez no boot (o backend nao tem job
  * agendado, ver api/notifications.ts) e via botao manual de refresh.
  */
-export function NotificationBell() {
+export function NotificationBell({ triggerClassName }: NotificationBellProps = {}) {
   const { data: notifications } = useNotifications(true);
   const syncNotifications = useSyncNotifications();
   const markRead = useMarkNotificationRead();
@@ -30,7 +35,7 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
+        <Button variant="ghost" size="icon" className={cn("relative", triggerClassName)} aria-label="Notificações">
           <Bell className="size-4" />
           {unread.length > 0 && (
             <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
