@@ -60,8 +60,8 @@ export function ChartTooltipBox({
     <div className="min-w-40 rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-float">
       <div className="mb-1.5 font-semibold">{title}</div>
       <div className="space-y-1">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-4">
+        {rows.map((row, i) => (
+          <div key={`${row.label}-${i}`} className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               {row.colorVar && (
                 <span

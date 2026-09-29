@@ -42,6 +42,11 @@ public class Notification {
     @Column(name = "source_id", nullable = false, updatable = false)
     private UUID sourceId;
 
+    // Período a que o alerta se refere ("2026-09" para alertas mensais; vazio nos de vencimento):
+    // entra na unicidade para o mesmo alerta poder voltar no mês seguinte (Fase 19).
+    @Column(name = "period_key", nullable = false, length = 20, updatable = false)
+    private String periodKey;
+
     @Column(name = "message", nullable = false, length = 255, updatable = false)
     private String message;
 
@@ -60,11 +65,19 @@ public class Notification {
     public Notification(
             UUID householdId, NotificationType type, NotificationSourceType sourceType, UUID sourceId,
             String message) {
+        this(householdId, type, sourceType, sourceId, "", message);
+    }
+
+    public Notification(
+            UUID householdId, NotificationType type, NotificationSourceType sourceType, UUID sourceId,
+            String periodKey, String message) {
         this.householdId = householdId;
+        this.periodKey = periodKey;
         this.type = type;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
-        this.message = message;
+        // A coluna tem 255: mensagem gerada com nome longo de categoria não pode derrubar o sync.
+        this.message = message.length() <= 255 ? message : message.substring(0, 254) + "…";
         this.read = false;
         this.createdAt = Instant.now();
     }
@@ -98,6 +111,10 @@ public class Notification {
 
     public UUID getSourceId() {
         return sourceId;
+    }
+
+    public String getPeriodKey() {
+        return periodKey;
     }
 
     public String getMessage() {
