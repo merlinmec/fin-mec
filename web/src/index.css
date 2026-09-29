@@ -3,15 +3,18 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design tokens do fin-mec. Paleta neutra (slate) + primary teal.
- * Tema claro em :root; o tema escuro redefine só os tokens sob .dark.
- * FE-0 entrega apenas o tema claro na UI; os tokens dark já existem para a
- * FE-9 (polish) ligar o toggle sem retrabalho.
+ * Design tokens do fin-mec. Paleta verde (redesign FE-9.1, inspirado no
+ * Organizze — produto de referência do projeto, ver PRODUCT.md) sobre fundo
+ * neutro levemente acinzentado, cards brancos com sombra fazendo a separação
+ * visual (em vez de borda sozinha). --primary e --success ficam no mesmo
+ * hue (~148) de propósito — a marca inteira é "verde", não dois verdes
+ * competindo. Tema claro em :root; o tema escuro redefine só os tokens sob
+ * .dark.
  */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(1 0 0);
+  --background: oklch(0.977 0.004 247);
   --foreground: oklch(0.208 0.021 256);
 
   --card: oklch(1 0 0);
@@ -19,26 +22,26 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.208 0.021 256);
 
-  --primary: oklch(0.52 0.077 182);
-  --primary-foreground: oklch(0.984 0.003 248);
+  --primary: oklch(0.52 0.145 148);
+  --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.968 0.007 248);
   --secondary-foreground: oklch(0.279 0.031 256);
 
-  --muted: oklch(0.968 0.007 248);
+  --muted: oklch(0.958 0.006 248);
   --muted-foreground: oklch(0.554 0.028 257);
 
-  --accent: oklch(0.968 0.007 248);
+  --accent: oklch(0.958 0.006 248);
   --accent-foreground: oklch(0.279 0.031 256);
 
   --destructive: oklch(0.577 0.245 27);
   --destructive-foreground: oklch(0.984 0.003 248);
 
-  --border: oklch(0.929 0.013 256);
-  --input: oklch(0.929 0.013 256);
-  --ring: oklch(0.52 0.077 182);
+  --border: oklch(0.925 0.011 256);
+  --input: oklch(0.925 0.011 256);
+  --ring: oklch(0.52 0.145 148);
 
-  --success: oklch(0.627 0.17 149);
+  --success: oklch(0.6 0.16 149);
   --warning: oklch(0.769 0.16 70);
 }
 
@@ -51,8 +54,8 @@
   --popover: oklch(0.279 0.031 256);
   --popover-foreground: oklch(0.984 0.003 248);
 
-  --primary: oklch(0.7 0.09 182);
-  --primary-foreground: oklch(0.208 0.021 256);
+  --primary: oklch(0.68 0.15 148);
+  --primary-foreground: oklch(0.16 0.03 148);
 
   --secondary: oklch(0.337 0.028 258);
   --secondary-foreground: oklch(0.984 0.003 248);
@@ -68,7 +71,7 @@
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.09 182);
+  --ring: oklch(0.68 0.15 148);
 
   --success: oklch(0.696 0.17 150);
   --warning: oklch(0.828 0.15 76);
