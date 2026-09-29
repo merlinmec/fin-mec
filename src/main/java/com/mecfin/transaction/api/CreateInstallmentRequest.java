@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 // amountPerInstallment é o valor de CADA parcela (não o total) - evita ambiguidade/resto de
@@ -21,5 +22,19 @@ public record CreateInstallmentRequest(
         @NotBlank @Size(max = 255) String description,
         @NotNull LocalDate firstTransactionDate,
         @NotNull YearMonth firstCompetenceMonth,
-        @Min(2) int installments) {
+        @Min(2) int installments,
+        @Size(max = 10) List<UUID> tagIds) {
+
+    public CreateInstallmentRequest(
+            UUID accountId,
+            UUID categoryId,
+            TransactionType type,
+            BigDecimal amountPerInstallment,
+            String description,
+            LocalDate firstTransactionDate,
+            YearMonth firstCompetenceMonth,
+            int installments) {
+        this(accountId, categoryId, type, amountPerInstallment, description, firstTransactionDate,
+                firstCompetenceMonth, installments, null);
+    }
 }

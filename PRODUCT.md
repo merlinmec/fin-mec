@@ -16,10 +16,14 @@ schema já suporta.
 ## Product Purpose
 
 Centralizador pessoal de vida financeira: contas manuais, lançamentos
-(receita/despesa/transferência, com parcelamento e recorrência-metadado),
-categorias, orçamento por categoria/mês, contas a pagar, cartão de crédito
-+ fatura, notificações de vencimento e dashboard com saldo contábil/
-disponível e previsão simples.
+(receita/despesa/transferência, com parcelamento, tags e lançamentos fixos
+gerados automaticamente — Fase 11), categorias, orçamento por categoria/mês,
+contas a pagar (recorrentes), cartão de crédito + fatura, metas de economia,
+relatórios (fluxo de caixa, evolução do saldo, categorias vs. período
+anterior), busca/exportação CSV, notificações de vencimento e dashboard com
+saldo contábil/disponível e previsão que considera os lançamentos previstos.
+Conta protegida por 2FA (TOTP), bloqueio por tentativas e revogação de
+sessões (Fase 14).
 
 ## Positioning
 
