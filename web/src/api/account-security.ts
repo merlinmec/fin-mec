@@ -13,7 +13,10 @@ export type SecurityEventType =
   | "RECOVERY_CODES_REGENERATED"
   | "PASSWORD_RESET_REQUESTED"
   | "PASSWORD_RESET"
-  | "SESSION_ENDED";
+  | "SESSION_ENDED"
+  | "HOUSEHOLD_JOINED"
+  | "HOUSEHOLD_LEFT"
+  | "HOUSEHOLD_REMOVED";
 
 export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   LOGIN_SUCCESS: "Login realizado",
@@ -29,6 +32,9 @@ export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   PASSWORD_RESET_REQUESTED: "Pedido de redefinição de senha por e-mail",
   PASSWORD_RESET: "Senha redefinida pelo link do e-mail",
   SESSION_ENDED: "Sessão encerrada em outro dispositivo",
+  HOUSEHOLD_JOINED: "Entrou num household compartilhado",
+  HOUSEHOLD_LEFT: "Saiu do household compartilhado",
+  HOUSEHOLD_REMOVED: "Removido do household compartilhado pelo dono",
 };
 
 /** Eventos que merecem destaque de alerta na lista. */

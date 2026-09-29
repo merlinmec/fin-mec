@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/auth/auth-context";
 import { getErrorMessage } from "@/lib/errors";
+import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ import { registerSchema, type RegisterFormValues } from "./register-schema";
 export function RegisterPage() {
   const { register: doRegister } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -29,7 +31,8 @@ export function RegisterPage() {
     setFormError(null);
     try {
       await doRegister(values);
-      void navigate("/", { replace: true });
+      // Veio de um convite (/convite?token=...): volta para ele já com a conta criada.
+      void navigate(safeNext(searchParams.get("next")), { replace: true });
     } catch (err) {
       setFormError(getErrorMessage(err, "Não foi possível criar a conta. Tente novamente."));
     }
@@ -48,7 +51,11 @@ export function RegisterPage() {
           <h1 className="text-lg font-semibold tracking-tight">Criar conta</h1>
           <p className="mt-1 text-sm text-muted-foreground">Controle financeiro pessoal.</p>
 
-          <form className="mt-5 space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
+          <form
+            className="mt-5 space-y-4"
+            onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+            noValidate
+          >
             <div className="space-y-1.5">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -78,7 +85,10 @@ export function RegisterPage() {
             </div>
 
             {formError && (
-              <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p
+                role="alert"
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {formError}
               </p>
             )}
@@ -90,7 +100,10 @@ export function RegisterPage() {
 
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Já tem conta?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">
+            <Link
+              to={`/login${nextQuery(searchParams.get("next"))}`}
+              className="font-medium text-primary hover:underline"
+            >
               Entrar
             </Link>
           </p>
