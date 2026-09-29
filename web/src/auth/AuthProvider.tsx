@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   fetchCurrentUser,
+  loginMfa,
   loginUser,
   logoutUser,
   registerUser,
@@ -56,7 +57,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // re-semear o cliente depois da chamada — não só no boot.
 
   const login = useCallback(async (payload: LoginPayload) => {
-    const me = await loginUser(payload);
+    const result = await loginUser(payload);
+    await bootstrapCsrf();
+    if ("mfaRequired" in result) {
+      return "mfa" as const;
+    }
+    setUser(result);
+    setStatus("authenticated");
+    return "authenticated" as const;
+  }, []);
+
+  const verifyMfa = useCallback(async (code: string) => {
+    const me = await loginMfa(code);
     await bootstrapCsrf();
     setUser(me);
     setStatus("authenticated");
@@ -80,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ status, user, refresh, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ status, user, refresh, login, verifyMfa, register, logout, setCurrentUser: setUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

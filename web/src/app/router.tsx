@@ -36,11 +36,40 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPage />, errorElement: <RouteErrorBoundary /> },
           { path: "contas", element: <AccountsPage />, errorElement: <RouteErrorBoundary /> },
           { path: "categorias", element: <CategoriesPage />, errorElement: <RouteErrorBoundary /> },
-          { path: "lancamentos", element: <TransactionsPage />, errorElement: <RouteErrorBoundary /> },
+          {
+            path: "lancamentos",
+            element: <TransactionsPage />,
+            errorElement: <RouteErrorBoundary />,
+          },
           { path: "contas-a-pagar", element: <BillsPage />, errorElement: <RouteErrorBoundary /> },
           { path: "orcamento", element: <BudgetsPage />, errorElement: <RouteErrorBoundary /> },
           { path: "cartoes", element: <CreditCardsPage />, errorElement: <RouteErrorBoundary /> },
-          { path: "cartoes/:cardId", element: <CreditCardDetailPage />, errorElement: <RouteErrorBoundary /> },
+          // Telas da FE-10 carregadas sob demanda: não pesam no primeiro carregamento
+          // (Configurações traz o gerador de QR code do 2FA).
+          {
+            path: "relatorios",
+            lazy: async () => ({
+              Component: (await import("@/routes/reports/ReportsPage")).ReportsPage,
+            }),
+            errorElement: <RouteErrorBoundary />,
+          },
+          {
+            path: "metas",
+            lazy: async () => ({ Component: (await import("@/routes/goals/GoalsPage")).GoalsPage }),
+            errorElement: <RouteErrorBoundary />,
+          },
+          {
+            path: "configuracoes/:tab?",
+            lazy: async () => ({
+              Component: (await import("@/routes/settings/SettingsPage")).SettingsPage,
+            }),
+            errorElement: <RouteErrorBoundary />,
+          },
+          {
+            path: "cartoes/:cardId",
+            element: <CreditCardDetailPage />,
+            errorElement: <RouteErrorBoundary />,
+          },
           {
             path: "cartoes/:cardId/faturas/:invoiceId",
             element: <InvoiceDetailPage />,

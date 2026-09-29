@@ -29,7 +29,10 @@ export interface Dashboard {
   totalAvailableBalance: number;
   monthlyIncome: number;
   monthlyExpense: number;
-  /** Previsao simples: saldo disponivel menos as contas a pagar OPEN com vencimento ate o fim do mes. Nao considera recorrencia (so metadado, sem geracao de ocorrencias futuras). */
+  /** Ainda a receber/pagar na competencia do mes (lancamentos previstos, ex.: ocorrencias de fixos). */
+  pendingIncome: number;
+  pendingExpense: number;
+  /** Saldo disponivel - contas a pagar em aberto ate o fim do mes + lancamentos previstos ate essa data. */
   projectedBalance: number;
   upcomingBills: Bill[];
   expensesByCategory: CategoryExpense[];
