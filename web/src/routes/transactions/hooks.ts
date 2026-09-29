@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { toast } from "sonner";
 import {
   cancelTransaction,
+  confirmTransaction,
   createInstallments,
   createTransaction,
   createTransfer,
@@ -10,10 +11,11 @@ import {
   type CreateInstallmentPayload,
   type CreateTransactionPayload,
   type CreateTransferPayload,
+  type EditScope,
   type TransactionSearchParams,
   type UpdateTransactionPayload,
 } from "@/api/transactions";
-import { accountsQueryKey } from "@/hooks/useAccounts";
+import { invalidateFinancialViews } from "@/hooks/useFeatureData";
 import { getErrorMessage } from "@/lib/errors";
 
 const transactionsKey = (params: TransactionSearchParams) => ["transactions", params] as const;
@@ -28,23 +30,20 @@ export function useTransactions(params: TransactionSearchParams) {
   });
 }
 
-// Todas as mutacoes invalidam tanto "transactions" (qualquer filtro) quanto
-// "accounts" — lancar/transferir/cancelar nao muda initialBalance, mas o
-// saldo hoje e so essa foto estatica (Fase de Dashboard ainda nao chegou no
-// frontend); invalidar aqui mantem a AccountsPage coerente se o usuario
-// navegar pra la logo em seguida, sem custo real (query so refaz se estiver montada).
-function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
-  void queryClient.invalidateQueries({ queryKey: ["transactions"] });
-  void queryClient.invalidateQueries({ queryKey: accountsQueryKey });
-}
+// Toda mutacao de lancamento mexe em saldo, dashboard, orcamento e relatorios — todos
+// recalculados no backend, entao basta invalidar (ver invalidateFinancialViews).
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateTransactionPayload) => createTransaction(payload),
-    onSuccess: () => {
-      invalidateAll(queryClient);
-      toast.success("Lançamento criado.");
+    onSuccess: (created) => {
+      invalidateFinancialViews(queryClient);
+      toast.success(
+        created.recurrenceSeriesId
+          ? "Lançamento fixo criado — os próximos já estão na agenda."
+          : "Lançamento criado.",
+      );
     },
     onError: (err) => toast.error(getErrorMessage(err, "Não foi possível criar o lançamento.")),
   });
@@ -53,10 +52,22 @@ export function useCreateTransaction() {
 export function useUpdateTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateTransactionPayload }) => updateTransaction(id, payload),
-    onSuccess: () => {
-      invalidateAll(queryClient);
-      toast.success("Lançamento atualizado.");
+    mutationFn: ({
+      id,
+      payload,
+      scope,
+    }: {
+      id: string;
+      payload: UpdateTransactionPayload;
+      scope?: EditScope;
+    }) => updateTransaction(id, payload, scope),
+    onSuccess: (_, { scope }) => {
+      invalidateFinancialViews(queryClient);
+      toast.success(
+        scope === "THIS_AND_FUTURE"
+          ? "Lançamento e próximas ocorrências atualizados."
+          : "Lançamento atualizado.",
+      );
     },
     onError: (err) => toast.error(getErrorMessage(err, "Não foi possível atualizar o lançamento.")),
   });
@@ -67,10 +78,11 @@ export function useCreateTransfer() {
   return useMutation({
     mutationFn: (payload: CreateTransferPayload) => createTransfer(payload),
     onSuccess: () => {
-      invalidateAll(queryClient);
+      invalidateFinancialViews(queryClient);
       toast.success("Transferência registrada.");
     },
-    onError: (err) => toast.error(getErrorMessage(err, "Não foi possível registrar a transferência.")),
+    onError: (err) =>
+      toast.error(getErrorMessage(err, "Não foi possível registrar a transferência.")),
   });
 }
 
@@ -79,7 +91,7 @@ export function useCreateInstallments() {
   return useMutation({
     mutationFn: (payload: CreateInstallmentPayload) => createInstallments(payload),
     onSuccess: (created) => {
-      invalidateAll(queryClient);
+      invalidateFinancialViews(queryClient);
       toast.success(`${created.length} parcelas criadas.`);
     },
     onError: (err) => toast.error(getErrorMessage(err, "Não foi possível criar o parcelamento.")),
@@ -89,11 +101,27 @@ export function useCreateInstallments() {
 export function useCancelTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => cancelTransaction(id),
-    onSuccess: () => {
-      invalidateAll(queryClient);
-      toast.success("Lançamento cancelado.");
+    mutationFn: ({ id, scope }: { id: string; scope?: EditScope }) => cancelTransaction(id, scope),
+    onSuccess: (_, { scope }) => {
+      invalidateFinancialViews(queryClient);
+      toast.success(
+        scope === "THIS_AND_FUTURE"
+          ? "Lançamento e próximas ocorrências cancelados."
+          : "Lançamento cancelado.",
+      );
     },
     onError: (err) => toast.error(getErrorMessage(err, "Não foi possível cancelar o lançamento.")),
+  });
+}
+
+export function useConfirmTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => confirmTransaction(id),
+    onSuccess: (confirmed) => {
+      invalidateFinancialViews(queryClient);
+      toast.success(`"${confirmed.description}" efetivado.`);
+    },
+    onError: (err) => toast.error(getErrorMessage(err, "Não foi possível efetivar o lançamento.")),
   });
 }
