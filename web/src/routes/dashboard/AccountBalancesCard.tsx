@@ -1,52 +1,51 @@
 import type { AccountBalance } from "@/api/dashboard";
 import { ACCOUNT_TYPE_LABELS } from "@/api/accounts";
+import { AccountIcon } from "@/components/AccountIcon";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 interface AccountBalancesCardProps {
   balances: AccountBalance[];
+  hidden?: boolean;
 }
 
+const MASK = "••••••";
+
 /**
- * Contabil (todos os POSTED, passados e futuros) x disponivel (POSTED so ate
- * hoje) — mesma distincao do backend, a UI so exibe as duas colunas lado a
- * lado por conta.
+ * Lista estilo "Minhas contas" do Organizze: ícone circular colorido + nome
+ * + saldo disponível em destaque à direita. Contábil (todos os POSTED,
+ * passados e futuros) vai como legenda menor — mesma distinção do backend,
+ * só muda a apresentação (era tabela, agora lista).
  */
-export function AccountBalancesCard({ balances }: AccountBalancesCardProps) {
+export function AccountBalancesCard({ balances, hidden = false }: AccountBalancesCardProps) {
   if (balances.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhuma conta cadastrada ainda.</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-muted-foreground">
-            <th className="pb-2 font-medium">Conta</th>
-            <th className="pb-2 text-right font-medium">Disponível</th>
-            <th className="pb-2 text-right font-medium">Contábil</th>
-          </tr>
-        </thead>
-        <tbody>
-          {balances.map((balance) => (
-            <tr key={balance.accountId} className="border-t border-border">
-              <td className="py-2">
-                <div className="font-medium">{balance.accountName}</div>
-                <div className="text-xs text-muted-foreground">{ACCOUNT_TYPE_LABELS[balance.accountType]}</div>
-              </td>
-              <td
-                className={cn(
-                  "py-2 text-right tabular-nums",
-                  balance.availableBalance < 0 && "text-destructive",
-                )}
-              >
-                {formatMoney(balance.availableBalance)}
-              </td>
-              <td className="py-2 text-right tabular-nums text-muted-foreground">{formatMoney(balance.ledgerBalance)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-border/60">
+      {balances.map((balance) => (
+        <li key={balance.accountId} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+          <AccountIcon account={{ id: balance.accountId, type: balance.accountType }} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-medium">{balance.accountName}</div>
+            <div className="text-xs text-muted-foreground">{ACCOUNT_TYPE_LABELS[balance.accountType]}</div>
+          </div>
+          <div className="text-right">
+            <div
+              className={cn(
+                "font-semibold tabular-nums",
+                !hidden && balance.availableBalance < 0 && "text-destructive",
+              )}
+            >
+              {hidden ? MASK : formatMoney(balance.availableBalance)}
+            </div>
+            <div className="text-xs text-muted-foreground tabular-nums">
+              contábil: {hidden ? MASK : formatMoney(balance.ledgerBalance)}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
