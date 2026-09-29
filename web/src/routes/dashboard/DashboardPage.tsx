@@ -19,6 +19,9 @@ import { UpcomingBillsCard } from "./UpcomingBillsCard";
 import { BudgetsSummaryCard } from "./BudgetsSummaryCard";
 import { PendingTransactionsCard } from "./PendingTransactionsCard";
 import { GoalsSummaryCard } from "./GoalsSummaryCard";
+import { ForecastCard } from "./ForecastCard";
+import { MonthlySummaryCard } from "./MonthlySummaryCard";
+import { monthlySummaryTitle, useMonthlySummary } from "./insights-hooks";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -157,6 +160,17 @@ export function DashboardPage() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Panel
               className="lg:col-span-2"
+              title="Previsão de saldo"
+              description="Dia a dia, com o que já está previsto"
+            >
+              <ForecastCard hidden={hidden} />
+            </Panel>
+            <SummaryPanel hidden={hidden} />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Panel
+              className="lg:col-span-2"
               title="Receitas x despesas"
               description={`Últimos 6 meses até ${formatYearMonth(month).toLowerCase()}`}
               action={seeAll("/relatorios", "Relatórios")}
@@ -207,6 +221,15 @@ export function DashboardPage() {
         </>
       )}
     </div>
+  );
+}
+
+function SummaryPanel({ hidden }: { hidden: boolean }) {
+  const { data } = useMonthlySummary();
+  return (
+    <Panel title={monthlySummaryTitle(data?.month)} description="Último mês fechado">
+      <MonthlySummaryCard hidden={hidden} />
+    </Panel>
   );
 }
 
