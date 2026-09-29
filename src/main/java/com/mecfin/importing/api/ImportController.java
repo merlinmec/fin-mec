@@ -5,6 +5,7 @@ import com.mecfin.importing.application.ImportPreview;
 import com.mecfin.importing.application.ImportResult;
 import com.mecfin.importing.application.ImportService;
 import com.mecfin.importing.application.StatementFormatException;
+import com.mecfin.shared.exception.PayloadTooLargeException;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
@@ -27,11 +28,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Importação de extrato (Fase 15). O arquivo só é lido na pré-visualização e descartado — nada
- * de upload persistido. Limites: 2 MB (spring.servlet.multipart) e 2.000 lançamentos.
+ * de upload persistido. Limites: 2 MB (MAX_BYTES) e 2.000 lançamentos.
  */
 @RestController
 @RequestMapping("/imports")
 public class ImportController {
+
+    static final long MAX_BYTES = 2L * 1024 * 1024;
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("ofx", "qfx", "csv", "txt");
 
@@ -57,6 +60,10 @@ public class ImportController {
                 : "";
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new StatementFormatException("Formato não suportado — envie o extrato em OFX ou CSV");
+        }
+        // Limite próprio (o multipart global é 5 MB por causa dos comprovantes, Fase 20).
+        if (file.getSize() > MAX_BYTES) {
+            throw new PayloadTooLargeException("O extrato pode ter até 2 MB");
         }
         byte[] content = file.getBytes();
         if (content.length == 0) {

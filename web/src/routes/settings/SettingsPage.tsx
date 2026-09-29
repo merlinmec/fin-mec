@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
+  Database,
   Monitor,
   Moon,
   Palette,
@@ -52,6 +53,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/money";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { ExportDataSection } from "./ExportDataSection";
 import { HouseholdSection } from "./HouseholdSection";
 import { RulesSection } from "./RulesSection";
 import { SecuritySection } from "./SecuritySection";
@@ -63,7 +65,7 @@ const TABS = [
   { id: "tags", label: "Tags", icon: Tags },
   { id: "regras", label: "Regras automáticas", icon: Wand2 },
   { id: "aparencia", label: "Aparência", icon: Palette },
-  { id: "conta", label: "Excluir conta", icon: UserX },
+  { id: "conta", label: "Meus dados", icon: Database },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -111,7 +113,12 @@ export function SettingsPage() {
           {active === "tags" && <TagsSection />}
           {active === "regras" && <RulesSection />}
           {active === "aparencia" && <AppearanceSection />}
-          {active === "conta" && <DeleteAccountSection />}
+          {active === "conta" && (
+            <div className="space-y-5">
+              <ExportDataSection />
+              <DeleteAccountSection />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -444,8 +451,8 @@ function DeleteAccountSection() {
             Apaga definitivamente sua conta e{" "}
             <strong className="font-semibold text-foreground">todos</strong> os dados financeiros:
             contas, lançamentos, cartões, orçamentos, metas e histórico. Não há como desfazer. É o
-            seu direito de eliminação de dados (LGPD, art. 18). Se quiser uma cópia antes, exporte
-            seus lançamentos em CSV.
+            seu direito de eliminação de dados (LGPD, art. 18). Se quiser uma cópia antes, use
+            “Baixar meus dados” acima.
           </p>
         )}
         <form

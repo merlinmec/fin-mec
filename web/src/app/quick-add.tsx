@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { EntryType } from "@/api/transactions";
 import { TransactionFormDialog } from "@/routes/transactions/TransactionFormDialog";
 import { TransferFormDialog } from "@/routes/transactions/TransferFormDialog";
@@ -61,6 +62,18 @@ export function QuickAddProvider({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [openEntry]);
+
+  // Atalho do ícone instalado (manifest "shortcuts", Fase 20): /?novo=despesa|receita abre o
+  // lançamento rápido direto; o parâmetro sai da URL para não reabrir no voltar/recarregar.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const novo = searchParams.get("novo");
+    if (!novo) return;
+    openEntry(novo === "receita" ? "INCOME" : "EXPENSE");
+    const next = new URLSearchParams(searchParams);
+    next.delete("novo");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, openEntry]);
 
   const value = useMemo(() => ({ openEntry, openTransfer }), [openEntry, openTransfer]);
 
