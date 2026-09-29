@@ -45,6 +45,23 @@ management:
     health:
       show-details: never
 
+# Documentação da API (Swagger/OpenAPI) só no perfil dev: em produção ela ficaria pública fora
+# de /api/** (anyRequest().permitAll() serve o SPA), expondo o mapa inteiro da API.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+mecfin:
+  security:
+    # AES-256 (32 bytes em base64) para cifrar o segredo do 2FA. Obrigatória fora do perfil
+    # dev - gere com: openssl rand -base64 32
+    encryption-key: ${MECFIN_ENCRYPTION_KEY}
+    lockout:
+      max-attempts: 5
+      duration: PT15M
+
 ---
 spring:
   config:
@@ -56,3 +73,14 @@ server:
     session:
       cookie:
         secure: false
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+mecfin:
+  security:
+    # Chave fixa só para desenvolvimento local - nunca usar em produção.
+    encryption-key: ${MECFIN_ENCRYPTION_KEY:ZGV2LW9ubHkta2V5LWRvLW5vdC11c2UtaW4tcHJvZCE=}
