@@ -1,6 +1,13 @@
 spring:
   profiles:
     active: dev
+
+# Mesmo nome de cookie do main (Spring Session usaria "SESSION"): este arquivo substitui o de main.
+server:
+  servlet:
+    session:
+      cookie:
+        name: JSESSIONID
   datasource:
     password: test-only-placeholder
 
@@ -30,3 +37,7 @@ mecfin:
       # Abaixo do rate limit de login (5/min por IP+e-mail) para o bloqueio ser observável num
       # teste que sempre sai do mesmo IP de loopback.
       max-attempts: 3
+  app:
+    base-url: http://localhost:5173
+  mail:
+    from: fin-mec <no-reply@fin-mec.test>

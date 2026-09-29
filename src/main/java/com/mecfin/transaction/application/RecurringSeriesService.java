@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -128,6 +129,7 @@ public class RecurringSeriesService {
      * transação - uma série com problema (ex.: conta excluída) não impede as outras.
      */
     @Scheduled(cron = "${mecfin.recurrence.cron:0 10 3 * * *}")
+    @SchedulerLock(name = "recurrence-extend-horizons", lockAtMostFor = "PT20M", lockAtLeastFor = "PT1M")
     public void extendAllHorizons() {
         int extended = 0;
         for (RecurringSeries candidate : seriesRepository.findAllByActiveTrue()) {
