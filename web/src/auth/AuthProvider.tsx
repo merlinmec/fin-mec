@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   fetchCurrentUser,
   loginMfa,
@@ -21,6 +22,19 @@ import { AuthContext, type AuthStatus } from "./auth-context";
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const queryClient = useQueryClient();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+
+  // O cache do TanStack não sabe de quem é o dado: sem isto, quem entra depois de um logout na
+  // mesma aba via por um instante as contas da pessoa anterior (sério em computador
+  // compartilhado). Troca de usuário (inclusive para anônimo) = cache zerado.
+  useEffect(() => {
+    const current = user?.id ?? null;
+    if (previousUserId.current !== undefined && previousUserId.current !== current) {
+      queryClient.clear();
+    }
+    previousUserId.current = current;
+  }, [user?.id, queryClient]);
 
   const refresh = useCallback(async () => {
     try {
