@@ -8,6 +8,7 @@ import {
   CalendarClock,
   CreditCard,
   Eye,
+  FileUp,
   LayoutDashboard,
   ListOrdered,
   Minus,
@@ -50,6 +51,7 @@ const PAGES: { label: string; to: string; icon: LucideIcon; keywords?: string }[
   },
   { label: "Orçamento", to: "/orcamento", icon: PiggyBank, keywords: "limite planejamento" },
   { label: "Metas", to: "/metas", icon: Target, keywords: "objetivos economia cofrinho" },
+  { label: "Importar extrato", to: "/importar", icon: FileUp, keywords: "ofx csv banco upload" },
   { label: "Categorias", to: "/categorias", icon: Shapes },
   {
     label: "Configurações",

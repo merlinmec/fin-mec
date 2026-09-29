@@ -12,6 +12,7 @@ import {
   Tags,
   Trash2,
   UserX,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAccount } from "@/api/account-security";
@@ -49,12 +50,14 @@ import { getErrorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/money";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { RulesSection } from "./RulesSection";
 import { SecuritySection } from "./SecuritySection";
 
 const TABS = [
   { id: "seguranca", label: "Segurança", icon: ShieldCheck },
   { id: "fixos", label: "Lançamentos fixos", icon: Repeat },
   { id: "tags", label: "Tags", icon: Tags },
+  { id: "regras", label: "Regras automáticas", icon: Wand2 },
   { id: "aparencia", label: "Aparência", icon: Palette },
   { id: "conta", label: "Excluir conta", icon: UserX },
 ] as const;
@@ -101,6 +104,7 @@ export function SettingsPage() {
           {active === "seguranca" && <SecuritySection />}
           {active === "fixos" && <RecurringSection />}
           {active === "tags" && <TagsSection />}
+          {active === "regras" && <RulesSection />}
           {active === "aparencia" && <AppearanceSection />}
           {active === "conta" && <DeleteAccountSection />}
         </div>

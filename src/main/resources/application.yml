@@ -15,6 +15,12 @@ spring:
   flyway:
     enabled: true
 
+  # Upload de extrato (Fase 15): um OFX/CSV de um ano inteiro fica bem abaixo de 2 MB.
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+
 server:
   error:
     include-stacktrace: never
