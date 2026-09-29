@@ -5,5 +5,7 @@ package com.mecfin.notification.domain;
 // do prefixo de NotificationType, pra o cliente nao precisar fazer parsing de string.
 public enum NotificationSourceType {
     BILL,
-    CREDIT_CARD_INVOICE
+    CREDIT_CARD_INVOICE,
+    BUDGET,
+    CATEGORY
 }
