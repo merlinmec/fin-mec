@@ -70,6 +70,9 @@ As migrations novas rodam sozinhas no boot. Sessões sobrevivem à troca do cont
 
 - O serviço `backup` faz `pg_dump` diário em `/backups` (volume `backups`), confere cada arquivo com
   `pg_restore --list` e mantém `BACKUP_KEEP_DAYS` dias.
+- Os comprovantes anexados aos lançamentos ficam no próprio Postgres (Fase 20), então já estão
+  nesse backup. Eles são o que mais faz o dump crescer (até 5 MB cada): acompanhe o tamanho em
+  `du -h` do volume e o espaço em disco da VPS.
 - **Prove que o backup restaura** (depois do primeiro deploy e periodicamente):
 
   ```bash
@@ -104,5 +107,6 @@ As migrations novas rodam sozinhas no boot. Sessões sobrevivem à troca do cont
 - [ ] SMTP configurado e testado ("Esqueci minha senha" chegando).
 - [ ] `restore-check.sh` executado com sucesso e cópia externa do backup funcionando.
 - [ ] Firewall: só 22 (SSH com chave), 80 e 443.
+- [ ] Instalar o app pelo navegador do celular ("Adicionar à tela inicial") só funciona em HTTPS — confira depois do deploy.
 - [ ] Se usar Open Finance: `PLUGGY_CLIENT_SECRET` e `PLUGGY_WEBHOOK_SECRET` só no `.env.prod`, e
       `PLUGGY_INCLUDE_SANDBOX=false`.

@@ -2,20 +2,26 @@ package com.mecfin.identity.api;
 
 import com.mecfin.identity.application.AccountSecurityService;
 import com.mecfin.identity.application.ClientInfo;
+import com.mecfin.identity.application.DataExportService;
 import com.mecfin.identity.application.MfaService;
 import com.mecfin.identity.application.SecurityEventService;
 import com.mecfin.identity.application.SessionService;
 import com.mecfin.identity.domain.SecurityEventType;
-import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.identity.domain.User;
+import com.mecfin.shared.exception.NotFoundException;
 import com.mecfin.shared.security.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,9 +45,12 @@ public class AccountSecurityController {
     private final SecurityEventService securityEvents;
     private final SessionEstablisher sessionEstablisher;
     private final SessionService sessionService;
+    private final DataExportService dataExportService;
 
     public AccountSecurityController(AccountSecurityService accountSecurityService, MfaService mfaService,
-            SecurityEventService securityEvents, SessionEstablisher sessionEstablisher, SessionService sessionService) {
+            SecurityEventService securityEvents, SessionEstablisher sessionEstablisher, SessionService sessionService,
+            DataExportService dataExportService) {
+        this.dataExportService = dataExportService;
         this.accountSecurityService = accountSecurityService;
         this.mfaService = mfaService;
         this.securityEvents = securityEvents;
@@ -127,6 +136,24 @@ public class AccountSecurityController {
         ClientInfo client = AuthController.client(httpRequest);
         accountSecurityService.reauthenticate(userId, request.password(), request.code(), client);
         return new RecoveryCodesResponse(mfaService.regenerateRecoveryCodes(userId, client));
+    }
+
+    /**
+     * Portabilidade (LGPD art. 18, V): todos os dados da conta e do household num JSON. POST com
+     * a senha no corpo pelo mesmo motivo da exclusão; no-store porque é o arquivo mais sensível
+     * que o app gera.
+     */
+    @PostMapping("/export")
+    public ResponseEntity<String> exportData(@Valid @RequestBody ReauthenticationRequest request,
+            HttpServletRequest httpRequest) {
+        String json = dataExportService.export(CurrentUser.id(), request.password(), request.code(),
+                AuthController.client(httpRequest));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("fin-mec-meus-dados-" + LocalDate.now() + ".json").build().toString())
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(json);
     }
 
     /**
