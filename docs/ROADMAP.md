@@ -1,6 +1,6 @@
 # fin-mec — Roadmap pós-MVP
 
-Atualizado em 29/09/2026 (Fases 15 a 19 entregues). Documento vivo: o que o fin-mec entrega hoje, como se
+Atualizado em 29/09/2026 (Fases 15 a 20 entregues — roadmap pós-MVP concluído). Documento vivo: o que o fin-mec entrega hoje, como se
 compara aos apps de finanças pessoais de referência e o que vem a seguir, com
 critério de pronto por fase.
 
@@ -165,12 +165,34 @@ apps de finanças.
   fatura 30% e R$ 50 acima da média das últimas pagas (mínimo 2). No resumo, aumento de
   categoria abaixo de R$ 50 não é notícia, e percentual acima de 200% é trocado pelo valor.
 
-### Fase 20: Mobile e conveniência
+### Fase 20: Mobile e conveniência — ✔ entregue
 - PWA instalável com cache offline das telas de leitura; atalho de lançamento
   rápido na tela inicial.
 - Anexo de comprovante no lançamento (armazenamento em objeto, varredura de
   tipo e tamanho).
 - Portabilidade LGPD completa: exportar tudo em JSON (a exclusão já existe).
+
+- **Entregue — PWA:** instalável (manifesto, ícones, atalhos "Nova despesa"/"Nova receita" no
+  ícone), app shell pré-cacheado e telas de leitura *network-first* com fallback offline e faixa
+  "sem conexão". O cache de API é uma lista **fechada** (login, CSRF, conta, comprovantes e
+  exportação nunca entram) e é **apagado na troca de usuário e ao abrir sem sessão**. Versão nova
+  espera o usuário aceitar (não recarrega no meio de um lançamento). Assets com hash servidos com
+  cache de 1 ano; index/sw/manifesto sempre revalidam.
+- **Entregue — comprovantes:** até 5 por lançamento, 5 MB cada; tipo pelos bytes (PDF, PNG, JPEG,
+  WEBP — HTML renomeado é recusado), nome saneado com a extensão real, download sempre como
+  anexo com `CSP: sandbox`; câmera direto no celular. **Mudança de plano, com motivo:** em vez de
+  armazenamento em objeto, o conteúdo fica no Postgres atrás de uma porta (`AttachmentStorage`) —
+  o backup é `pg_dump`, então o comprovante entra no backup, no teste de restauração e na
+  exclusão LGPD sem infraestrutura nova. Trocar por S3 é escrever outro adapter.
+- **Entregue — portabilidade:** "Baixar meus dados" (JSON com conta, histórico de segurança e todo
+  o household), pedindo a senha de novo; colunas sensíveis removidas na própria consulta
+  (`to_jsonb(t) - ARRAY[...]`); teste varre o `information_schema` e falha se tabela nova com
+  `household_id` não estiver no inventário.
+- **Achados no caminho:** (1) as ações que pedem a senha de novo (trocar senha, excluir conta,
+  desligar 2FA) não limitavam tentativas — um cookie de sessão roubado permitia testar senhas à
+  vontade; agora 5 a cada 15 min por usuário. (2) O yml de teste não tinha o limite de upload do
+  main (testes rodavam com 1 MB). (3) Na própria fase: a limpeza do cache offline rodava a cada
+  abertura do app e o apagava — pego no teste ponta a ponta no navegador.
 
 ## Limitações conhecidas (hoje)
 
