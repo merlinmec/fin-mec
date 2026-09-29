@@ -5,6 +5,7 @@ import com.mecfin.account.application.AccountService;
 import com.mecfin.category.infra.CategoryRepository;
 import com.mecfin.shared.domain.RecurrenceRule;
 import com.mecfin.shared.security.CurrentUser;
+import com.mecfin.tag.application.TagService;
 import com.mecfin.transaction.domain.RecurringSeries;
 import com.mecfin.transaction.domain.Transaction;
 import com.mecfin.transaction.domain.TransactionDirection;
@@ -15,7 +16,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,19 +32,22 @@ public class TransactionService {
     private final AccountService accountService;
     private final CategoryRepository categoryRepository;
     private final RecurringSeriesService recurringSeriesService;
+    private final TagService tagService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             AccountService accountService,
             CategoryRepository categoryRepository,
-            RecurringSeriesService recurringSeriesService) {
+            RecurringSeriesService recurringSeriesService,
+            TagService tagService) {
         this.transactionRepository = transactionRepository;
         this.accountService = accountService;
         this.categoryRepository = categoryRepository;
         this.recurringSeriesService = recurringSeriesService;
+        this.tagService = tagService;
     }
 
-    // Sobrecarga sem data final - usada por quem não lida com recorrência (ex.: BillService).
+    // Sobrecarga sem data final nem tags - usada por quem não lida com isso (ex.: BillService).
     @Transactional
     public Transaction create(
             UUID accountId,
@@ -54,7 +60,7 @@ public class TransactionService {
             TransactionStatus status,
             RecurrenceRule recurrenceRule) {
         return create(accountId, categoryId, type, amount, description, transactionDate, competenceMonth, status,
-                recurrenceRule, null);
+                recurrenceRule, null, null);
     }
 
     @Transactional
@@ -68,15 +74,18 @@ public class TransactionService {
             YearMonth competenceMonth,
             TransactionStatus status,
             RecurrenceRule recurrenceRule,
-            LocalDate recurrenceEndDate) {
+            LocalDate recurrenceEndDate,
+            Collection<UUID> tagIds) {
         if (type == TransactionType.TRANSFER) {
             throw new IllegalArgumentException("Use POST /transactions/transfers para criar uma transferência");
         }
         validateAccount(accountId);
         validateCategory(categoryId);
+        Set<UUID> tags = tagService.requireOwned(tagIds);
         if (recurrenceRule != null) {
             RecurringSeries series = new RecurringSeries(CurrentUser.householdId(), accountId, categoryId, type,
                     amount, description, recurrenceRule, transactionDate, recurrenceEndDate);
+            series.replaceTags(tags);
             return recurringSeriesService.start(series, effectiveStatus(status), competenceMonth);
         }
         if (recurrenceEndDate != null) {
@@ -85,6 +94,7 @@ public class TransactionService {
         Transaction transaction = Transaction.of(
                 accountId, categoryId, type, amount, description, transactionDate, competenceMonth,
                 effectiveStatus(status), null);
+        transaction.replaceTags(tags);
         return transactionRepository.save(transaction);
     }
 
@@ -137,7 +147,8 @@ public class TransactionService {
             String description,
             LocalDate firstTransactionDate,
             YearMonth firstCompetenceMonth,
-            int installments) {
+            int installments,
+            Collection<UUID> tagIds) {
         if (type == TransactionType.TRANSFER) {
             throw new IllegalArgumentException("Parcelamento não se aplica a transferência");
         }
@@ -146,6 +157,7 @@ public class TransactionService {
         }
         validateAccount(accountId);
         validateCategory(categoryId);
+        Set<UUID> tags = tagService.requireOwned(tagIds);
 
         UUID groupId = UUID.randomUUID();
         List<Transaction> legs = new ArrayList<>();
@@ -153,9 +165,11 @@ public class TransactionService {
             LocalDate date = firstTransactionDate.plusMonths(i - 1L);
             YearMonth month = firstCompetenceMonth.plusMonths(i - 1L);
             String numberedDescription = description + " (" + i + "/" + installments + ")";
-            legs.add(Transaction.installmentLeg(
+            Transaction leg = Transaction.installmentLeg(
                     accountId, categoryId, type, amountPerInstallment, numberedDescription, date, month,
-                    TransactionStatus.POSTED, i, installments, groupId));
+                    TransactionStatus.POSTED, i, installments, groupId);
+            leg.replaceTags(tags);
+            legs.add(leg);
         }
         return transactionRepository.saveAll(legs);
     }
@@ -165,7 +179,7 @@ public class TransactionService {
         LocalDate competenceMonthDate = filter.competenceMonth() != null ? filter.competenceMonth().atDay(1) : null;
         return transactionRepository.search(accountIds, filter.accountId(), filter.categoryId(), filter.type(),
                 filter.status(), competenceMonthDate, filter.from(), filter.to(), filter.likePattern(),
-                filter.minAmount(), filter.maxAmount(), pageable);
+                filter.minAmount(), filter.maxAmount(), filter.tagId(), pageable);
     }
 
     public Transaction get(UUID id) {
@@ -184,12 +198,18 @@ public class TransactionService {
             YearMonth competenceMonth,
             TransactionStatus status,
             RecurrenceRule recurrenceRule,
-            EditScope scope) {
+            EditScope scope,
+            Collection<UUID> tagIds) {
         Transaction transaction = get(id);
         if (transaction.getType() == TransactionType.TRANSFER) {
             throw new TransferNotEditableException(id);
         }
         validateCategory(categoryId);
+        // tagIds null = mantém as tags atuais (cliente que não conhece tags não as apaga sem
+        // querer); lista vazia = remove todas.
+        if (tagIds != null) {
+            transaction.replaceTags(tagService.requireOwned(tagIds));
+        }
         if (transaction.isRecurrenceOccurrence()) {
             // A periodicidade de uma ocorrência vem da série; mudar a regra é encerrar a série e
             // criar outra, não editar uma ocorrência.
@@ -213,9 +233,10 @@ public class TransactionService {
             if (transaction.getInstallmentGroupId() != null) {
                 throw new IllegalArgumentException("Parcela não pode virar lançamento fixo");
             }
-            recurringSeriesService.startFrom(transaction, new RecurringSeries(CurrentUser.householdId(),
-                    transaction.getAccountId(), categoryId, type, amount, description, recurrenceRule,
-                    transactionDate, null));
+            RecurringSeries series = new RecurringSeries(CurrentUser.householdId(), transaction.getAccountId(),
+                    categoryId, type, amount, description, recurrenceRule, transactionDate, null);
+            series.replaceTags(transaction.getTagIds());
+            recurringSeriesService.startFrom(transaction, series);
         }
         return transaction;
     }

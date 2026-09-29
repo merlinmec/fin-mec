@@ -105,9 +105,11 @@ public class RecurringSeriesService {
     public void applyTemplateFrom(Transaction from) {
         RecurringSeries series = seriesRepository.findById(from.getRecurrenceSeriesId())
                 .orElseThrow(() -> new IllegalStateException("Série não encontrada: " + from.getRecurrenceSeriesId()));
-        series.updateTemplate(from.getCategoryId(), from.getType(), from.getAmount(), from.getDescription());
+        series.updateTemplate(from.getCategoryId(), from.getType(), from.getAmount(), from.getDescription(),
+                from.getTagIds());
         for (Transaction occurrence : laterPendingOccurrences(from)) {
-            occurrence.applyTemplate(from.getCategoryId(), from.getType(), from.getAmount(), from.getDescription());
+            occurrence.applyTemplate(from.getCategoryId(), from.getType(), from.getAmount(), from.getDescription(),
+                    from.getTagIds());
         }
     }
 
