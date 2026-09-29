@@ -1,0 +1,14 @@
+package com.mecfin.identity.domain;
+
+public enum SecurityEventType {
+    LOGIN_SUCCESS,
+    LOGIN_FAILURE,
+    LOGIN_MFA_FAILURE,
+    ACCOUNT_LOCKED,
+    PASSWORD_CHANGED,
+    SESSIONS_REVOKED,
+    MFA_ENABLED,
+    MFA_DISABLED,
+    RECOVERY_CODE_USED,
+    RECOVERY_CODES_REGENERATED
+}
