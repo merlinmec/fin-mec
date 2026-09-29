@@ -8,8 +8,15 @@ export interface AuthContextValue {
   user: CurrentUser | null;
   /** Re-checa a sessao no backend (usado apos login/logout nas fases seguintes). */
   refresh: () => Promise<void>;
-  /** POST /auth/login. Lanca ApiError (401 credenciais invalidas, 429 rate limit) em caso de falha. */
-  login: (payload: LoginPayload) => Promise<void>;
+  /**
+   * POST /auth/login. "authenticated" = sessao aberta; "mfa" = conta com 2FA, falta o codigo
+   * (verifyMfa). Lanca ApiError (401 credenciais invalidas, 429 rate limit/bloqueio).
+   */
+  login: (payload: LoginPayload) => Promise<"authenticated" | "mfa">;
+  /** POST /auth/login/mfa — segundo passo do login com 2FA. */
+  verifyMfa: (code: string) => Promise<void>;
+  /** Atualiza o usuario em memoria (ex.: depois de ligar/desligar o 2FA). */
+  setCurrentUser: (user: CurrentUser) => void;
   /** POST /auth/register. Lanca ApiError (409 e-mail duplicado, 429 rate limit) em caso de falha. */
   register: (payload: RegisterPayload) => Promise<void>;
   /** POST /auth/logout. */

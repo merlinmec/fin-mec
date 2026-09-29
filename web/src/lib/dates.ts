@@ -29,7 +29,10 @@ export function formatDate(iso: string): string {
 /** yyyy-MM -> "setembro de 2026". */
 export function formatYearMonth(yearMonth: string): string {
   const [y, m] = yearMonth.split("-").map(Number);
-  const label = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const label = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
@@ -52,4 +55,11 @@ export function daysUntil(isoDate: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** Hoje + N dias (N pode ser negativo) -> yyyy-MM-dd, no fuso local (nao UTC). */
+export function addDaysIso(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return toIsoDate(date);
 }
