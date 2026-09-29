@@ -10,7 +10,10 @@ export type SecurityEventType =
   | "MFA_ENABLED"
   | "MFA_DISABLED"
   | "RECOVERY_CODE_USED"
-  | "RECOVERY_CODES_REGENERATED";
+  | "RECOVERY_CODES_REGENERATED"
+  | "PASSWORD_RESET_REQUESTED"
+  | "PASSWORD_RESET"
+  | "SESSION_ENDED";
 
 export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   LOGIN_SUCCESS: "Login realizado",
@@ -23,6 +26,9 @@ export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
   MFA_DISABLED: "Verificação em duas etapas desativada",
   RECOVERY_CODE_USED: "Código de recuperação usado",
   RECOVERY_CODES_REGENERATED: "Novos códigos de recuperação gerados",
+  PASSWORD_RESET_REQUESTED: "Pedido de redefinição de senha por e-mail",
+  PASSWORD_RESET: "Senha redefinida pelo link do e-mail",
+  SESSION_ENDED: "Sessão encerrada em outro dispositivo",
 };
 
 /** Eventos que merecem destaque de alerta na lista. */
@@ -50,6 +56,24 @@ export interface SecurityEvent {
 export interface MfaSetup {
   secret: string;
   otpauthUri: string;
+}
+
+/** Espelha SessionService.SessionInfo — id é uma impressão digital, nunca o id real da sessão. */
+export interface ActiveSession {
+  id: string;
+  device: string;
+  ipAddress: string | null;
+  createdAt: string;
+  lastAccessedAt: string;
+  current: boolean;
+}
+
+export function listSessions(): Promise<ActiveSession[]> {
+  return api.get<ActiveSession[]>("/account/sessions");
+}
+
+export function endSession(id: string): Promise<void> {
+  return api.del<void>(`/account/sessions/${id}`);
 }
 
 export function getSecurityOverview(): Promise<SecurityOverview> {

@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+target
+web/node_modules
+web/dist
+src/main/resources/static
+.env
+.env.*
+*.iml
+mec-explain.txt
+claudinho.bat
+docs
