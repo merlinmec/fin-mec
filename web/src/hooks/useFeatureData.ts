@@ -31,6 +31,7 @@ export function invalidateFinancialViews(queryClient: ReturnType<typeof useQuery
     "budgets",
     "bills",
     "tags",
+    "insights",
   ]) {
     void queryClient.invalidateQueries({ queryKey: [key] });
   }

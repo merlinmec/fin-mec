@@ -9,5 +9,10 @@ public enum NotificationType {
     BILL_DUE_SOON,
     BILL_OVERDUE,
     CREDIT_CARD_INVOICE_DUE_SOON,
-    CREDIT_CARD_INVOICE_OVERDUE
+    CREDIT_CARD_INVOICE_OVERDUE,
+    // Fase 19 - alertas inteligentes (gerados pelo módulo insight via NotificationSource).
+    BUDGET_NEAR_LIMIT,
+    BUDGET_EXCEEDED,
+    CATEGORY_SPENDING_SPIKE,
+    CREDIT_CARD_INVOICE_ABOVE_NORMAL
 }
