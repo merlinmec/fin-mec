@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -134,6 +135,10 @@ public class Transaction {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // Quantos comprovantes (Fase 20) — calculado pelo banco na mesma consulta, só leitura.
+    @Formula("(SELECT count(*) FROM transaction_attachments a WHERE a.transaction_id = id)")
+    private int attachmentCount;
 
     // Quem lançou (Fase 17); nulo = sistema. Preenchido pelo JpaAuditingConfig.
     @CreatedBy
@@ -442,6 +447,10 @@ public class Transaction {
 
     public Set<UUID> getTagIds() {
         return Collections.unmodifiableSet(tagIds);
+    }
+
+    public int getAttachmentCount() {
+        return attachmentCount;
     }
 
     public UUID getCreatedBy() {
