@@ -7,6 +7,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  # Igual ao main (sem isto os testes rodavam com o padrão de 1 MB do Spring, não o do app).
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 # Mesmo nome de cookie do main (Spring Session usaria "SESSION"): este arquivo substitui o de main.
 server:
