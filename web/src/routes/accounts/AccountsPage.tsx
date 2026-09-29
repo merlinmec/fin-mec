@@ -57,23 +57,11 @@ export function AccountsPage() {
       )}
 
       {accounts && accounts.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted-foreground">
-                <th className="py-2 pr-4 pl-4 font-medium">Nome</th>
-                <th className="py-2 pr-4 font-medium">Tipo</th>
-                <th className="py-2 pr-4 text-right font-medium">Saldo inicial</th>
-                <th className="py-2 pr-4 font-medium" />
-              </tr>
-            </thead>
-            <tbody className="px-4">
-              {accounts.map((account) => (
-                <AccountRow key={account.id} account={account} onEdit={openEdit} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card shadow-sm">
+          {accounts.map((account) => (
+            <AccountRow key={account.id} account={account} onEdit={openEdit} />
+          ))}
+        </ul>
       )}
 
       <AccountFormDialog open={formOpen} onOpenChange={setFormOpen} account={editingAccount} />
