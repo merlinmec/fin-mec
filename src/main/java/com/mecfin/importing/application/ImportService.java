@@ -130,6 +130,37 @@ public class ImportService {
         return new ImportResult(batch.getId(), created, matched, skipped);
     }
 
+    /**
+     * Importação sem revisão humana (sincronização bancária, Fase 16): aplica a própria análise da
+     * pré-visualização — cria o que é novo, efetiva o previsto que casar e ignora o resto. O
+     * "possível duplicado" de um lançamento manual é ignorado: na dúvida, nunca dobrar um gasto
+     * (o usuário ainda pode trazê-lo pela importação manual). Sem nada a gravar, nem cria lote.
+     */
+    @Transactional
+    public ImportResult autoImport(UUID accountId, String label, ImportFormat format, List<StatementLine> lines) {
+        if (lines.isEmpty()) {
+            return new ImportResult(null, 0, 0, 0);
+        }
+        List<PreviewRow> rows = analyze(accountId, lines);
+        boolean anythingToWrite = rows.stream().anyMatch(r -> r.status() == PreviewStatus.NEW
+                || r.status() == PreviewStatus.MATCHES_PENDING);
+        if (!anythingToWrite) {
+            return new ImportResult(null, 0, 0, rows.size());
+        }
+        List<CommitRow> commitRows = rows.stream().map(row -> new CommitRow(
+                row.externalId(), row.date(), row.description(),
+                row.type() == TransactionType.EXPENSE ? row.amount().negate() : row.amount(),
+                switch (row.status()) {
+                    case NEW -> CommitRow.Action.CREATE;
+                    case MATCHES_PENDING -> CommitRow.Action.MATCH;
+                    default -> CommitRow.Action.SKIP;
+                },
+                row.suggestedCategoryId(),
+                row.suggestedTagId() != null ? List.of(row.suggestedTagId()) : null,
+                row.matchTransactionId())).toList();
+        return commit(accountId, label, format, commitRows);
+    }
+
     public List<ImportBatch> history() {
         return batchRepository.findTop30ByHouseholdIdOrderByCreatedAtDesc(CurrentUser.householdId());
     }

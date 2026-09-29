@@ -92,6 +92,17 @@ springdoc:
     enabled: false
 
 mecfin:
+  # Open Finance (Fase 16) via Pluggy. Sem client-id/secret a integração fica desligada e a tela
+  # "Bancos conectados" explica como configurar. Credenciais em https://dashboard.pluggy.ai.
+  pluggy:
+    base-url: ${PLUGGY_BASE_URL:https://api.pluggy.ai}
+    client-id: ${PLUGGY_CLIENT_ID:}
+    client-secret: ${PLUGGY_CLIENT_SECRET:}
+    # Segredo na URL do webhook (a Pluggy não assina webhooks): openssl rand -hex 24
+    webhook-secret: ${PLUGGY_WEBHOOK_SECRET:}
+    # Mostra o "Pluggy Bank" de testes no widget (credenciais de sandbox).
+    include-sandbox: ${PLUGGY_INCLUDE_SANDBOX:false}
+    history-days: 90
   app:
     # URL pública do app — vai nos links dos e-mails (redefinição de senha).
     base-url: ${MECFIN_BASE_URL:http://localhost:5173}
