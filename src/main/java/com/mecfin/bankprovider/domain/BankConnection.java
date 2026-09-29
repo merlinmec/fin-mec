@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -51,6 +52,13 @@ public class BankConnection {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
+    // Fase 16: motivo legível da última falha e a partir de que data importar o histórico.
+    @Column(name = "last_error")
+    private String lastError;
+
+    @Column(name = "sync_from")
+    private LocalDate syncFrom;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -80,12 +88,48 @@ public class BankConnection {
     public void markSynced(Instant syncedAt) {
         this.lastSyncedAt = syncedAt;
         this.status = BankConnectionStatus.ACTIVE;
+        this.lastError = null;
         touch();
     }
 
     public void markError() {
+        markError(null);
+    }
+
+    public void markError(String reason) {
         this.status = BankConnectionStatus.ERROR;
+        this.lastError = truncate(reason);
         touch();
+    }
+
+    public void markExpired(String reason) {
+        this.status = BankConnectionStatus.EXPIRED;
+        this.lastError = truncate(reason);
+        touch();
+    }
+
+    /** Reconexão bem-sucedida pelo widget: volta a ativa (as credenciais foram renovadas). */
+    public void reactivate() {
+        this.status = BankConnectionStatus.ACTIVE;
+        this.lastError = null;
+        touch();
+    }
+
+    public void startHistoryFrom(LocalDate from) {
+        this.syncFrom = from;
+        touch();
+    }
+
+    private static String truncate(String value) {
+        return value == null || value.length() <= 255 ? value : value.substring(0, 255);
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
+
+    public LocalDate getSyncFrom() {
+        return syncFrom;
     }
 
     // Token expirado/revogado pelo usuário no banco de origem - precisa reconectar (fluxo de

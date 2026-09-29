@@ -41,3 +41,8 @@ mecfin:
     base-url: http://localhost:5173
   mail:
     from: fin-mec <no-reply@fin-mec.test>
+  pluggy:
+    # Os testes que usam o provedor sobem um Pluggy falso e sobrescrevem estes valores.
+    base-url: http://localhost:1
+    client-id: ""
+    client-secret: ""
