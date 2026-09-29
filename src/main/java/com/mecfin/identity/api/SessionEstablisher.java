@@ -25,13 +25,28 @@ public class SessionEstablisher {
     private final UserDetailsService userDetailsService;
     private final SecurityContextRepository securityContextRepository;
     private final SessionStampValidator sessionStampValidator;
+    private final SessionService sessionService;
     private final SecurityContextHolderStrategy holder = SecurityContextHolder.getContextHolderStrategy();
 
     public SessionEstablisher(UserDetailsService userDetailsService, SecurityContextRepository securityContextRepository,
-            SessionStampValidator sessionStampValidator) {
+            SessionStampValidator sessionStampValidator, SessionService sessionService) {
         this.userDetailsService = userDetailsService;
         this.securityContextRepository = securityContextRepository;
         this.sessionStampValidator = sessionStampValidator;
+        this.sessionService = sessionService;
+    }
+
+    /**
+     * Depois de uma mudança que trocou o carimbo de segurança (senha, 2FA, household): apaga as
+     * demais sessões do banco e renova a atual com um snapshot novo. O carimbo já as tornaria
+     * inválidas na próxima requisição; apagar é higiene (somem da lista "sessões ativas" na hora).
+     * A ORDEM importa: o Spring Session só grava o id novo (changeSessionId) no fim da requisição
+     * — apagar "as outras" depois da troca apagaria a própria sessão atual, ainda salva sob o id
+     * antigo, e deslogaria o usuário.
+     */
+    public AuthenticatedUser refresh(HttpServletRequest request, HttpServletResponse response, String email) {
+        sessionService.deleteOthers(email, request.getSession().getId());
+        return establish(request, response, email);
     }
 
     /** Autentica a sessão atual como {@code email}, com um snapshot fresco do usuário. */
