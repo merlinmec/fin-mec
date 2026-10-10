@@ -110,7 +110,7 @@ export function ReportsPage() {
           description="Só o que já foi efetivado, por competência"
         >
           {report ? (
-            <CashFlowChart months={report.months} height={300} />
+            <CashFlowChart months={report.months} height={300} hidden={hidden} />
           ) : (
             <Skeleton className="h-[330px] rounded-xl" />
           )}
