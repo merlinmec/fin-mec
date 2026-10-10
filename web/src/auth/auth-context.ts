@@ -19,6 +19,8 @@ export interface AuthContextValue {
   setCurrentUser: (user: CurrentUser) => void;
   /** POST /auth/register. Lanca ApiError (409 e-mail duplicado, 429 rate limit) em caso de falha. */
   register: (payload: RegisterPayload) => Promise<void>;
+  /** POST /demo/session — entra como visitante na demonstração pública. */
+  startDemo: () => Promise<void>;
   /** POST /auth/logout. */
   logout: () => Promise<void>;
 }
