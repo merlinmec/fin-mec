@@ -1,0 +1,14 @@
+# Produção no próprio computador (Windows/macOS/Linux com Docker Desktop). Complementa o
+# docker-compose.prod.yml: mesma stack (Caddy com HTTPS, app, Postgres, backup), em
+# https://localhost. Uso e configuração única em docs/DEPLOY.md ("Rodar no próprio computador").
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.prod up -d --build
+#
+# Os containers têm restart: unless-stopped, então voltam sozinhos sempre que o Docker inicia.
+services:
+  backup:
+    volumes:
+      # Os dumps vão para uma pasta do computador em vez de um volume do Docker: dá para abrir,
+      # copiar e, numa pasta sincronizada (OneDrive, Google Drive, Dropbox), ter cópia fora da
+      # máquina sem nada a mais. Substitui o volume "backups" do arquivo de produção (mesmo destino).
+      - ${BACKUP_DIR:?defina BACKUP_DIR no .env.prod (pasta dos backups no computador)}:/backups
