@@ -99,6 +99,8 @@ npm install
 npm run dev
 ```
 
+Num clone novo, ative também os hooks do repositório (`git config core.hooksPath .githooks`).
+
 No perfil `dev`, a documentação da API fica em `http://localhost:8080/swagger-ui.html`. Em
 produção ela fica desligada.
 
