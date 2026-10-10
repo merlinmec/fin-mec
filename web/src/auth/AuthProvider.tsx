@@ -11,6 +11,7 @@ import {
   type RegisterPayload,
 } from "@/api/auth";
 import { bootstrapCsrf } from "@/api/csrf";
+import { startDemoSession } from "@/api/demo";
 import { ApiError, setUnauthorizedHandler } from "@/api/client";
 import { clearOfflineData } from "@/app/offline-cache";
 import { AuthContext, type AuthStatus } from "./auth-context";
@@ -36,7 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const current = user?.id ?? null;
     const previous = previousUserId.current;
     if (current === null || (previous != null && previous !== current)) {
-      queryClient.clear();
+      // Tudo que é dado de alguém sai; só o que vale para qualquer usuário (meta.global, ex.: "este
+      // deploy é a demonstração?") fica, senão a tela de login perderia essa informação no boot.
+      queryClient.removeQueries({ predicate: (query) => query.meta?.global !== true });
+      queryClient.getMutationCache().clear();
       void clearOfflineData();
     }
     previousUserId.current = current;
@@ -105,6 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus("authenticated");
   }, []);
 
+  const startDemo = useCallback(async () => {
+    const me = await startDemoSession();
+    await bootstrapCsrf();
+    setUser(me);
+    setStatus("authenticated");
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await logoutUser();
@@ -117,7 +128,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ status, user, refresh, login, verifyMfa, register, logout, setCurrentUser: setUser }}
+      value={{
+        status,
+        user,
+        refresh,
+        login,
+        verifyMfa,
+        register,
+        startDemo,
+        logout,
+        setCurrentUser: setUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

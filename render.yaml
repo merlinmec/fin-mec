@@ -1,0 +1,42 @@
+# Demonstração pública do fin-mec no Render (plano gratuito), com o banco no Neon (gratuito).
+# Passo a passo em docs/DEMO.md. Os valores "sync: false" são segredos colados no painel do Render.
+services:
+  - type: web
+    name: fin-mec-demo
+    runtime: docker
+    plan: free
+    region: oregon # mesma região do banco no Neon (us-west-2): cada consulta cruza menos rede
+    dockerfilePath: ./Dockerfile
+    branch: main
+    autoDeploy: true # a main só recebe código com a CI verde (ruleset)
+    healthCheckPath: /api/demo/status
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod,demo
+      # O Render encaminha o tráfego para a porta desta variável; a aplicação escuta na 8080.
+      - key: PORT
+        value: "8080"
+      # O plano gratuito tem 512 MB de RAM: heap limitado e GC serial (menos memória e threads).
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=65 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError
+      # Neon: endpoint DIRETO (sem "-pooler" no host), com ?sslmode=require no fim da URL.
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      # Pool pequeno e que esvazia quando ninguém usa: o Neon só "dorme" (e não gasta as horas de
+      # computação gratuitas) sem conexões abertas.
+      - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+        value: "5"
+      - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+        value: "0"
+      - key: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
+        value: "60000"
+      # Só cifra segredos de 2FA, que a demo nem permite ligar; mesmo assim é obrigatória no prod.
+      - key: MECFIN_ENCRYPTION_KEY
+        generateValue: true
+      # A URL pública do serviço (ex.: https://fin-mec-demo.onrender.com).
+      - key: MECFIN_BASE_URL
+        sync: false
