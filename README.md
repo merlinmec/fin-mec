@@ -8,6 +8,26 @@ arquitetura foram construídas do zero.
 **Stack:** Java 21 · Spring Boot 4.1 · Spring Security 7 · PostgreSQL 18 · Flyway · React 19 ·
 TypeScript · Vite · TanStack Query · Tailwind 4 · Testcontainers · Docker · Caddy
 
+![Dashboard: saldo disponível, fluxo do mês, contas, previsão de saldo e resumo do último mês](docs/screenshots/dashboard.png)
+
+<table>
+  <tr>
+    <td width="30%"><img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard no celular, com barra de navegação inferior e botão de novo lançamento"></td>
+    <td><img src="docs/screenshots/dashboard-escuro.png" alt="Dashboard no tema escuro"></td>
+  </tr>
+</table>
+
+<details>
+<summary>Mais telas: lançamentos, relatórios e metas</summary>
+
+![Lançamentos do mês agrupados por dia, com previstos a efetivar e lançamento fixo](docs/screenshots/lancamentos.png)
+![Relatórios: receitas x despesas por mês, evolução do saldo e ranking por categoria](docs/screenshots/relatorios.png)
+![Metas de economia com progresso e quanto guardar por mês](docs/screenshots/metas.png)
+
+</details>
+
+As telas usam dados fictícios de demonstração.
+
 ## O que ele faz
 
 | Área | Funcionalidades |
