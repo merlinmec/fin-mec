@@ -1,6 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { CashFlowMonth } from "@/api/reports";
 import { formatCompactMoney, formatShortMonth } from "@/lib/chart-format";
+import { MASK } from "@/hooks/useBalanceVisibility";
 import { formatYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,8 @@ import { ChartFrame, ChartTooltipBox } from "./ChartFrame";
 interface CashFlowChartProps {
   months: CashFlowMonth[];
   height?: number;
+  /** "Ocultar saldos": receitas e despesas também revelam a vida financeira, então somem junto. */
+  hidden?: boolean;
 }
 
 const LEGEND = [
@@ -21,7 +24,9 @@ const LEGEND = [
  * magnitude lado a lado), receita sempre à esquerda. O saldo acumulado vai em
  * outro gráfico (BalanceChart) — nunca num segundo eixo Y neste.
  */
-export function CashFlowChart({ months, height = 240 }: CashFlowChartProps) {
+export function CashFlowChart({ months, height = 240, hidden = false }: CashFlowChartProps) {
+  const money = (v: number) => (hidden ? MASK : formatMoney(v));
+
   return (
     <ChartFrame
       legend={LEGEND}
@@ -44,7 +49,7 @@ export function CashFlowChart({ months, height = 240 }: CashFlowChartProps) {
                 dy={6}
               />
               <YAxis
-                tickFormatter={formatCompactMoney}
+                tickFormatter={(v: number) => (hidden ? "•••" : formatCompactMoney(v))}
                 tickLine={false}
                 axisLine={false}
                 width={52}
@@ -61,15 +66,15 @@ export function CashFlowChart({ months, height = 240 }: CashFlowChartProps) {
                       rows={[
                         {
                           label: "Receitas",
-                          value: formatMoney(row.income),
+                          value: money(row.income),
                           colorVar: "--chart-income",
                         },
                         {
                           label: "Despesas",
-                          value: formatMoney(row.expense),
+                          value: money(row.expense),
                           colorVar: "--chart-expense",
                         },
-                        { label: "Resultado", value: formatMoney(row.net) },
+                        { label: "Resultado", value: money(row.net) },
                       ]}
                     />
                   );
@@ -107,15 +112,15 @@ export function CashFlowChart({ months, height = 240 }: CashFlowChartProps) {
             {months.map((m) => (
               <tr key={m.month} className="border-b border-border/60 last:border-0">
                 <td className="py-2 pr-3">{formatYearMonth(m.month)}</td>
-                <td className="num py-2 pr-3 text-right">{formatMoney(m.income)}</td>
-                <td className="num py-2 pr-3 text-right">{formatMoney(m.expense)}</td>
+                <td className="num py-2 pr-3 text-right">{money(m.income)}</td>
+                <td className="num py-2 pr-3 text-right">{money(m.expense)}</td>
                 <td
                   className={cn(
                     "num py-2 text-right font-medium",
-                    m.net < 0 ? "text-destructive" : "text-success",
+                    !hidden && (m.net < 0 ? "text-destructive" : "text-success"),
                   )}
                 >
-                  {formatMoney(m.net)}
+                  {money(m.net)}
                 </td>
               </tr>
             ))}
