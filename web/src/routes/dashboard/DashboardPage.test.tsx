@@ -102,16 +102,23 @@ describe("DashboardPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Ocultar saldos" }));
 
-    expect(screen.queryByText(money(2500))).not.toBeInTheDocument();
-    expect(screen.queryByText(money(2300))).not.toBeInTheDocument();
-    expect(screen.queryByText(money(-150.5))).not.toBeInTheDocument();
-    // Mascarado não pode continuar vermelho: a cor entregaria que a previsão é negativa.
-    for (const masked of screen.getAllByText("••••••")) {
-      expect(masked).not.toHaveClass("text-destructive");
+    try {
+      expect(screen.queryByText(money(2500))).not.toBeInTheDocument();
+      expect(screen.queryByText(money(2300))).not.toBeInTheDocument();
+      expect(screen.queryByText(money(-150.5))).not.toBeInTheDocument();
+      // Fluxos do mês também: receita e despesa revelam a vida financeira tanto quanto o saldo.
+      for (const flow of [6000, 3500, 800]) {
+        expect(screen.queryByText(money(flow))).not.toBeInTheDocument();
+      }
+      // Mascarado não pode continuar vermelho: a cor entregaria que a previsão é negativa.
+      for (const masked of screen.getAllByText("••••••")) {
+        expect(masked).not.toHaveClass("text-destructive");
+      }
+    } finally {
+      // A preferência é um store global do módulo (e persistida): desfaz mesmo se algo acima
+      // falhar, senão a falha vaza para os testes seguintes.
+      await user.click(screen.getByRole("button", { name: "Mostrar saldos" }));
     }
-
-    // A preferência é um store global do módulo (e persistida): desfaz para não vazar nos outros testes.
-    await user.click(screen.getByRole("button", { name: "Mostrar saldos" }));
     expect(screen.getAllByText(money(2500))).toHaveLength(2);
   });
 
