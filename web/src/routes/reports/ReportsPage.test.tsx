@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
+import { ApiError } from "@/api/client";
 import type { CashFlowReport, CategoryReport } from "@/api/reports";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { formatMoney } from "@/lib/money";
@@ -86,6 +87,17 @@ describe("ReportsPage", () => {
     expect(screen.getByText(money(3000))).toHaveClass("text-success");
     expect(await screen.findByText("Mercado")).toBeInTheDocument();
     expect(screen.getByText(`${money(12345)} no período`, { exact: false })).toBeInTheDocument();
+  });
+
+  it("avisa quando o ranking por categoria falha, em vez de carregar para sempre", async () => {
+    vi.mocked(getCategoryReport).mockRejectedValue(new ApiError(500, null));
+    renderReports();
+
+    expect(
+      await screen.findByText(
+        "Não foi possível carregar o ranking por categoria. Tente recarregar a página.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("com os saldos ocultos, mascara valores mas mantém os percentuais", async () => {
