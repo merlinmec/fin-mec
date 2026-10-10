@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { PageHeader, Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -470,9 +471,8 @@ function DeleteAccountSection() {
         >
           <div className="space-y-1.5">
             <Label htmlFor="del-password">Senha</Label>
-            <Input
+            <PasswordInput
               id="del-password"
-              type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
