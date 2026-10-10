@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { errorDescribedBy } from "@/lib/field-error";
@@ -73,10 +74,9 @@ export function RegisterPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="password">Senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
                 aria-describedby={errors.password ? "password-error" : "password-hint"}
-                type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
                 {...register("password")}
