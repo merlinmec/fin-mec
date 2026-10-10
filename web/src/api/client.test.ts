@@ -110,7 +110,7 @@ describe("apiBlob", () => {
 
   it("prefere o filename* (UTF-8) do Content-Disposition", async () => {
     fetchMock.mockResolvedValue(
-      new Response(new Blob(["pdf"]), {
+      new Response("pdf", {
         headers: {
           "Content-Disposition":
             "attachment; filename=\"recibo.pdf\"; filename*=UTF-8''recibo%20%C3%A1gua.pdf",
@@ -126,11 +126,11 @@ describe("apiBlob", () => {
   it("cai para o filename simples e devolve null sem Content-Disposition", async () => {
     fetchMock
       .mockResolvedValueOnce(
-        new Response(new Blob(["x"]), {
+        new Response("x", {
           headers: { "Content-Disposition": 'attachment; filename="dados.json"' },
         }),
       )
-      .mockResolvedValueOnce(new Response(new Blob(["x"])));
+      .mockResolvedValueOnce(new Response("x"));
 
     expect((await apiBlob("/a")).fileName).toBe("dados.json");
     expect((await apiBlob("/b")).fileName).toBeNull();
