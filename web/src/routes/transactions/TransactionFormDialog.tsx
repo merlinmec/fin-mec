@@ -7,12 +7,15 @@ import { RECURRENCE_RULES, RECURRENCE_RULE_LABELS } from "@/api/transactions";
 import { currentYearMonth, todayIso, yearMonthOf } from "@/lib/dates";
 import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
+import { handleRadioGroupKeyDown } from "@/lib/radio-group";
 import { AccountSelect } from "@/components/AccountSelect";
 import { CategorySelect } from "@/components/CategorySelect";
 import { TagPicker } from "@/components/TagPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -186,6 +189,7 @@ function EntryForm({
           className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
           role="radiogroup"
           aria-label="Tipo"
+          onKeyDown={handleRadioGroupKeyDown}
         >
           {TYPE_TABS.map((tab) => (
             <button
@@ -193,6 +197,7 @@ function EntryForm({
               type="button"
               role="radio"
               aria-checked={type === tab.value}
+              tabIndex={type === tab.value ? 0 : -1}
               onClick={() => {
                 if (type !== tab.value) {
                   setValue("type", tab.value);
@@ -218,6 +223,7 @@ function EntryForm({
               </span>
               <Input
                 id="entry-amount"
+                aria-describedby={errorDescribedBy("entry-amount", errors.amount)}
                 type="number"
                 inputMode="decimal"
                 step="0.01"
@@ -242,20 +248,19 @@ function EntryForm({
             </NativeSelect>
           </div>
         </div>
-        {errors.amount && <p className="-mt-2 text-sm text-destructive">{errors.amount.message}</p>}
+        <FieldError id="entry-amount-error" error={errors.amount} className="-mt-2" />
 
         <div className="space-y-1.5">
           <Label htmlFor="entry-description">Descrição</Label>
           <Input
             id="entry-description"
+            aria-describedby={errorDescribedBy("entry-description", errors.description)}
             autoComplete="off"
             placeholder={type === "INCOME" ? "Ex.: Salário" : "Ex.: Mercado"}
             aria-invalid={!!errors.description}
             {...register("description")}
           />
-          {errors.description && (
-            <p className="text-sm text-destructive">{errors.description.message}</p>
-          )}
+          <FieldError id="entry-description-error" error={errors.description} />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -272,13 +277,13 @@ function EntryForm({
             ) : (
               <AccountSelect
                 id="entry-account"
+                aria-describedby={errorDescribedBy("entry-account", errors.accountId)}
+                aria-invalid={!!errors.accountId}
                 value={accountId}
                 onValueChange={(v) => setValue("accountId", v ?? "", { shouldValidate: true })}
               />
             )}
-            {errors.accountId && (
-              <p className="text-sm text-destructive">{errors.accountId.message}</p>
-            )}
+            <FieldError id="entry-account-error" error={errors.accountId} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="entry-category">Categoria</Label>
@@ -298,6 +303,7 @@ function EntryForm({
             <Label htmlFor="entry-date">Data</Label>
             <Input
               id="entry-date"
+              aria-describedby={errorDescribedBy("entry-date", errors.transactionDate)}
               type="date"
               aria-invalid={!!errors.transactionDate}
               {...register("transactionDate", {
@@ -306,9 +312,7 @@ function EntryForm({
                 },
               })}
             />
-            {errors.transactionDate && (
-              <p className="text-sm text-destructive">{errors.transactionDate.message}</p>
-            )}
+            <FieldError id="entry-date-error" error={errors.transactionDate} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="entry-competence">Competência</Label>

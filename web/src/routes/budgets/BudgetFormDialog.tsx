@@ -10,6 +10,8 @@ import { CategorySelect } from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCreateBudget, useUpdateBudget } from "./hooks";
 import { createBudgetSchema, updateBudgetSchema, type CreateBudgetFormValues, type UpdateBudgetFormValues } from "./budget-schema";
@@ -76,29 +78,32 @@ function CreateBudgetForm({ defaultMonth, onDone }: { defaultMonth: string; onDo
           <Label htmlFor="budget-category">Categoria</Label>
           <CategorySelect
             id="budget-category"
+            aria-describedby={errorDescribedBy("budget-category", errors.categoryId)}
+            aria-invalid={!!errors.categoryId}
             type="EXPENSE"
             value={categoryId}
             onValueChange={(v) => setValue("categoryId", v ?? "", { shouldValidate: true })}
           />
-          {errors.categoryId && <p className="text-sm text-destructive">{errors.categoryId.message}</p>}
+          <FieldError id="budget-category-error" error={errors.categoryId} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="budget-month">Mês</Label>
-            <Input id="budget-month" type="month" aria-invalid={!!errors.referenceMonth} {...register("referenceMonth")} />
-            {errors.referenceMonth && <p className="text-sm text-destructive">{errors.referenceMonth.message}</p>}
+            <Input id="budget-month" aria-describedby={errorDescribedBy("budget-month", errors.referenceMonth)} type="month" aria-invalid={!!errors.referenceMonth} {...register("referenceMonth")} />
+            <FieldError id="budget-month-error" error={errors.referenceMonth} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="budget-amount">Limite planejado</Label>
             <Input
               id="budget-amount"
+              aria-describedby={errorDescribedBy("budget-amount", errors.amount)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.amount}
               {...register("amount", { valueAsNumber: true })}
             />
-            {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+            <FieldError id="budget-amount-error" error={errors.amount} />
           </div>
         </div>
 
@@ -159,12 +164,13 @@ function EditBudgetForm({ budget, category, onDone }: { budget: Budget; category
           <Label htmlFor="edit-budget-amount">Limite planejado</Label>
           <Input
             id="edit-budget-amount"
+            aria-describedby={errorDescribedBy("edit-budget-amount", errors.amount)}
             type="number"
             step="0.01"
             aria-invalid={!!errors.amount}
             {...register("amount", { valueAsNumber: true })}
           />
-          {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+          <FieldError id="edit-budget-amount-error" error={errors.amount} />
         </div>
 
         {formError && (
