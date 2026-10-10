@@ -9,6 +9,8 @@ import { CategorySelect } from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRegisterCharge } from "./hooks";
@@ -102,8 +104,8 @@ function ChargeForm({ cardId, onDone }: { cardId: string; onDone: () => void }) 
 
         <div className="space-y-1.5">
           <Label htmlFor="charge-description">Descrição</Label>
-          <Input id="charge-description" autoComplete="off" aria-invalid={!!errors.description} {...register("description")} />
-          {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+          <Input id="charge-description" aria-describedby={errorDescribedBy("charge-description", errors.description)} autoComplete="off" aria-invalid={!!errors.description} {...register("description")} />
+          <FieldError id="charge-description-error" error={errors.description} />
         </div>
 
         <div className="space-y-1.5">
@@ -116,17 +118,18 @@ function ChargeForm({ cardId, onDone }: { cardId: string; onDone: () => void }) 
             <Label htmlFor="charge-amount">{installmentEnabled ? "Valor da parcela" : "Valor"}</Label>
             <Input
               id="charge-amount"
+              aria-describedby={errorDescribedBy("charge-amount", errors.amount)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.amount}
               {...register("amount", { valueAsNumber: true })}
             />
-            {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+            <FieldError id="charge-amount-error" error={errors.amount} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="charge-date">Data da compra</Label>
-            <Input id="charge-date" type="date" aria-invalid={!!errors.purchaseDate} {...register("purchaseDate")} />
-            {errors.purchaseDate && <p className="text-sm text-destructive">{errors.purchaseDate.message}</p>}
+            <Input id="charge-date" aria-describedby={errorDescribedBy("charge-date", errors.purchaseDate)} type="date" aria-invalid={!!errors.purchaseDate} {...register("purchaseDate")} />
+            <FieldError id="charge-date-error" error={errors.purchaseDate} />
           </div>
         </div>
 
@@ -151,13 +154,14 @@ function ChargeForm({ cardId, onDone }: { cardId: string; onDone: () => void }) 
               <Label htmlFor="charge-installments">Número de parcelas</Label>
               <Input
                 id="charge-installments"
+                aria-describedby={errorDescribedBy("charge-installments", errors.installments)}
                 type="number"
                 min={2}
                 step="1"
                 aria-invalid={!!errors.installments}
                 {...register("installments", { valueAsNumber: true })}
               />
-              {errors.installments && <p className="text-sm text-destructive">{errors.installments.message}</p>}
+              <FieldError id="charge-installments-error" error={errors.installments} />
             </div>
           )}
         </div>

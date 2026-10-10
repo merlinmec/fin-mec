@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -84,20 +86,20 @@ function CategoryForm({ category, onDone }: { category?: Category; onDone: () =>
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="cat-name">Nome</Label>
-          <Input id="cat-name" autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
-          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          <Input id="cat-name" aria-describedby={errorDescribedBy("cat-name", errors.name)} autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
+          <FieldError id="cat-name-error" error={errors.name} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="cat-type">Tipo</Label>
-          <NativeSelect id="cat-type" aria-invalid={!!errors.type} {...register("type")}>
+          <NativeSelect id="cat-type" aria-describedby={errorDescribedBy("cat-type", errors.type)} aria-invalid={!!errors.type} {...register("type")}>
             {CATEGORY_TYPES.map((type) => (
               <option key={type} value={type}>
                 {CATEGORY_TYPE_LABELS[type]}
               </option>
             ))}
           </NativeSelect>
-          {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
+          <FieldError id="cat-type-error" error={errors.type} />
         </div>
 
         <div className="space-y-1.5">
