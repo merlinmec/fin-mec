@@ -12,7 +12,9 @@ const APP_NAME = "fin-mec";
  */
 export function useRouteFocus(mainRef: RefObject<HTMLElement | null>) {
   const { pathname } = useLocation();
-  const isFirstRender = useRef(true);
+  // Último pathname já tratado. Comparar com ele (e não com um "primeira execução") deixa o efeito
+  // idempotente: o StrictMode roda o efeito duas vezes na montagem e não pode contar como navegação.
+  const lastPathname = useRef<string | null>(null);
 
   useEffect(() => {
     const heading = mainRef.current?.querySelector("h1");
@@ -20,10 +22,9 @@ export function useRouteFocus(mainRef: RefObject<HTMLElement | null>) {
     document.title = name ? `${name} · ${APP_NAME}` : APP_NAME;
 
     // Na abertura do app o foco fica onde o navegador puser; só a navegação move.
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    const previous = lastPathname.current;
+    lastPathname.current = pathname;
+    if (previous === null || previous === pathname) return;
     const target = heading ?? mainRef.current;
     if (!target) return;
     target.setAttribute("tabindex", "-1");
