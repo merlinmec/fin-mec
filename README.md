@@ -125,3 +125,7 @@ em todo PR.
 `docker-compose.prod.yml` sobe a aplicação atrás do Caddy (HTTPS automático), com backup diário
 do Postgres (retenção configurável) e um script que testa a restauração. O passo a passo e o
 checklist de segurança estão em [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+Há também uma **demonstração pública de custo zero** (Render + Neon, planos gratuitos): cada
+visitante ganha uma conta temporária com dados fictícios, apagada em 24 horas. Como funciona e como
+publicar: [`docs/DEMO.md`](docs/DEMO.md).
