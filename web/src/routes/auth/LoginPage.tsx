@@ -7,6 +7,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { errorDescribedBy } from "@/lib/field-error";
@@ -154,10 +155,9 @@ export function LoginPage() {
                       Esqueci minha senha
                     </Link>
                   </div>
-                  <Input
+                  <PasswordInput
                     id="password"
                     aria-describedby={errorDescribedBy("password", errors.password)}
-                    type="password"
                     autoComplete="current-password"
                     aria-invalid={!!errors.password}
                     {...register("password")}
