@@ -11,6 +11,8 @@ import { CategorySelect } from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -127,10 +129,12 @@ function InstallmentForm({ onDone }: { onDone: () => void }) {
           <Label htmlFor="installment-account">Conta</Label>
           <AccountSelect
             id="installment-account"
+            aria-describedby={errorDescribedBy("installment-account", errors.accountId)}
+            aria-invalid={!!errors.accountId}
             value={accountId}
             onValueChange={(v) => setValue("accountId", v ?? "", { shouldValidate: true })}
           />
-          {errors.accountId && <p className="text-sm text-destructive">{errors.accountId.message}</p>}
+          <FieldError id="installment-account-error" error={errors.accountId} />
         </div>
 
         <div className="space-y-1.5">
@@ -148,11 +152,12 @@ function InstallmentForm({ onDone }: { onDone: () => void }) {
           <Label htmlFor="installment-description">Descrição</Label>
           <Input
             id="installment-description"
+            aria-describedby={errorDescribedBy("installment-description", errors.description)}
             autoComplete="off"
             aria-invalid={!!errors.description}
             {...register("description")}
           />
-          {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+          <FieldError id="installment-description-error" error={errors.description} />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -160,26 +165,26 @@ function InstallmentForm({ onDone }: { onDone: () => void }) {
             <Label htmlFor="installment-amount">Valor da parcela</Label>
             <Input
               id="installment-amount"
+              aria-describedby={errorDescribedBy("installment-amount", errors.amountPerInstallment)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.amountPerInstallment}
               {...register("amountPerInstallment", { valueAsNumber: true })}
             />
-            {errors.amountPerInstallment && (
-              <p className="text-sm text-destructive">{errors.amountPerInstallment.message}</p>
-            )}
+            <FieldError id="installment-amount-error" error={errors.amountPerInstallment} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="installment-count">Parcelas</Label>
             <Input
               id="installment-count"
+              aria-describedby={errorDescribedBy("installment-count", errors.installments)}
               type="number"
               min={2}
               step="1"
               aria-invalid={!!errors.installments}
               {...register("installments", { valueAsNumber: true })}
             />
-            {errors.installments && <p className="text-sm text-destructive">{errors.installments.message}</p>}
+            <FieldError id="installment-count-error" error={errors.installments} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="installment-date">1ª parcela</Label>
