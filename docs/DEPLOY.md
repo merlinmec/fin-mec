@@ -57,6 +57,38 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # app deve
 Na primeira subida o Flyway cria todo o schema. Abra `https://seu-dominio`, crie sua conta e ative a
 verificação em duas etapas em Configurações → Segurança.
 
+## Rodar no próprio computador
+
+Para usar o fin-mec sem VPS: a mesma stack roda no seu computador, em `https://localhost`, e fica
+disponível sempre que ele estiver ligado. `docker-compose.local.yml` só troca o destino dos backups
+para uma pasta do computador.
+
+1. No `.env.prod`: `DOMAIN=localhost`, `MECFIN_BASE_URL=https://localhost` e
+   `BACKUP_DIR=` uma pasta do computador. Numa pasta sincronizada (OneDrive, Google Drive), o backup
+   ganha cópia fora da máquina de graça. Os dumps têm todos os seus dados financeiros: use uma
+   conta de nuvem só sua.
+2. Suba:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.prod up -d --build
+   ```
+
+3. Confie no certificado do Caddy (uma vez só). Com `localhost`, o Caddy usa uma CA interna própria.
+   Sem confiar nela, o navegador mostra aviso de certificado e não deixa instalar o app. No Windows,
+   sem precisar de administrador:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml cp caddy:/data/caddy/pki/authorities/local/root.crt fin-mec-ca.crt
+   certutil -user -addstore Root fin-mec-ca.crt   # o Windows pede confirmação
+   ```
+
+   A CA fica no volume `caddy-data`. Se esse volume for apagado, o Caddy gera outra e é preciso
+   repetir este passo.
+4. No Docker Desktop, ligue "Start Docker Desktop when you sign in to your computer". Os containers
+   têm `restart: unless-stopped` e voltam sozinhos quando o Docker inicia.
+
+Para atualizar depois de um `git pull`, rode o mesmo comando do passo 2.
+
 ## Atualizar
 
 ```bash
