@@ -1,0 +1,2 @@
+# Lê DATABASE_URL (formato dos provedores de Postgres) antes de o datasource ser montado.
+org.springframework.boot.EnvironmentPostProcessor=com.mecfin.shared.config.DatabaseUrlEnvironmentPostProcessor
