@@ -9,7 +9,7 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader, Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
+import { MASK, useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useCashFlow, useCategoryReport } from "@/hooks/useFeatureData";
 import { currentYearMonth, formatYearMonth, shiftYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -39,6 +39,8 @@ export function ReportsPage() {
   const cashFlow = useCashFlow(range);
   const categories = useCategoryReport(range, type);
   const { hidden } = useBalanceVisibility();
+  // Percentuais (participação, variação, taxa de poupança) continuam: são relativos, não valores.
+  const money = (v: number) => (hidden ? MASK : formatMoney(v));
   const report = cashFlow.data;
 
   return (
@@ -87,19 +89,19 @@ export function ReportsPage() {
         </div>
       ) : (
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Kpi label="Receitas" value={formatMoney(report.totalIncome)} tone="positive" />
-          <Kpi label="Despesas" value={formatMoney(report.totalExpense)} tone="negative" />
+          <Kpi label="Receitas" value={money(report.totalIncome)} tone="positive" />
+          <Kpi label="Despesas" value={money(report.totalExpense)} tone="negative" />
           <Kpi
             label="Resultado"
-            value={formatMoney(report.net)}
-            tone={report.net < 0 ? "negative" : "positive"}
+            value={money(report.net)}
+            tone={hidden ? undefined : report.net < 0 ? "negative" : "positive"}
           />
           <Kpi
             label="Taxa de poupança"
             value={report.savingsRate === null ? "—" : `${percent.format(report.savingsRate)}%`}
             hint="Quanto da receita sobrou"
           />
-          <Kpi label="Despesa média/mês" value={formatMoney(report.averageMonthlyExpense)} />
+          <Kpi label="Despesa média/mês" value={money(report.averageMonthlyExpense)} />
         </dl>
       )}
 
@@ -110,7 +112,7 @@ export function ReportsPage() {
           description="Só o que já foi efetivado, por competência"
         >
           {report ? (
-            <CashFlowChart months={report.months} height={300} />
+            <CashFlowChart months={report.months} height={300} hidden={hidden} />
           ) : (
             <Skeleton className="h-[330px] rounded-xl" />
           )}
@@ -136,7 +138,7 @@ export function ReportsPage() {
         title={type === "EXPENSE" ? "Para onde foi o dinheiro" : "De onde veio o dinheiro"}
         description={
           categories.data
-            ? `${formatMoney(categories.data.total)} no período${
+            ? `${money(categories.data.total)} no período${
                 categories.data.changePercent !== null
                   ? ` · ${categories.data.changePercent >= 0 ? "+" : ""}${percent.format(categories.data.changePercent)}% vs. período anterior`
                   : ""
@@ -178,7 +180,7 @@ export function ReportsPage() {
             description="Os lançamentos efetivados aparecem aqui por categoria."
           />
         ) : (
-          <CategoryRanking lines={categories.data.categories} type={type} />
+          <CategoryRanking lines={categories.data.categories} type={type} hidden={hidden} />
         )}
       </Panel>
     </div>
@@ -218,7 +220,16 @@ function Kpi({
  * linha carrega nome + valor + % direto: a cor da categoria só reforça a
  * identidade, nunca é a única pista.
  */
-function CategoryRanking({ lines, type }: { lines: CategoryReportLine[]; type: EntryType }) {
+function CategoryRanking({
+  lines,
+  type,
+  hidden,
+}: {
+  lines: CategoryReportLine[];
+  type: EntryType;
+  hidden: boolean;
+}) {
+  const money = (v: number) => (hidden ? MASK : formatMoney(v));
   return (
     <ul className="-mx-2 space-y-0.5">
       {lines.map((line) => {
@@ -233,7 +244,7 @@ function CategoryRanking({ lines, type }: { lines: CategoryReportLine[]; type: E
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{line.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {percent.format(line.share)}% · média {formatMoney(line.monthlyAverage)}/mês
+                  {percent.format(line.share)}% · média {money(line.monthlyAverage)}/mês
                 </div>
               </div>
               <div className="col-span-3 row-start-2 h-2 overflow-hidden rounded-full bg-muted sm:col-span-1 sm:row-start-auto">
@@ -246,7 +257,7 @@ function CategoryRanking({ lines, type }: { lines: CategoryReportLine[]; type: E
                 />
               </div>
               <span className="num col-start-3 row-start-1 text-right text-sm font-bold sm:col-start-auto sm:row-start-auto">
-                {formatMoney(line.total)}
+                {money(line.total)}
               </span>
               <ChangeBadge value={line.changePercent} type={type} />
             </Link>
