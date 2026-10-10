@@ -33,6 +33,7 @@ import { fetchCurrentUser } from "@/api/auth";
 import { useAuth } from "@/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -195,9 +196,8 @@ function ChangePasswordForm() {
     <form className="space-y-3" onSubmit={submit} noValidate>
       <div className="space-y-1.5">
         <Label htmlFor="pw-current">Senha atual</Label>
-        <Input
+        <PasswordInput
           id="pw-current"
-          type="password"
           autoComplete="current-password"
           value={current}
           onChange={(e) => setCurrent(e.target.value)}
@@ -206,9 +206,8 @@ function ChangePasswordForm() {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="pw-new">Nova senha</Label>
-          <Input
+          <PasswordInput
             id="pw-new"
-            type="password"
             autoComplete="new-password"
             value={next}
             onChange={(e) => setNext(e.target.value)}
@@ -216,9 +215,8 @@ function ChangePasswordForm() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="pw-confirm">Confirmar</Label>
-          <Input
+          <PasswordInput
             id="pw-confirm"
-            type="password"
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
@@ -429,8 +427,7 @@ function MfaManager({ enabled, remaining }: { enabled: boolean; remaining: numbe
             {mode === "disable" ? "Confirme para desativar" : "Confirme para gerar novos códigos"}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               placeholder="Sua senha"
               value={password}
