@@ -44,7 +44,7 @@ export function StatTile({
             type="button"
             onClick={onToggleHidden}
             aria-label={hidden ? "Mostrar valor" : "Ocultar valor"}
-            className="text-muted-foreground/70 transition-colors hover:text-foreground"
+            className="-m-1.5 rounded-full p-1.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
           >
             {hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>

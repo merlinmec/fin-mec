@@ -7,6 +7,9 @@ const NONE = "__none__";
 
 interface AccountSelectProps {
   id?: string;
+  /** Repassados ao gatilho: liga a mensagem de erro do formulário (ver FieldError). */
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
   value: string | undefined;
   onValueChange: (id: string | undefined) => void;
   disabled?: boolean;
@@ -20,6 +23,8 @@ interface AccountSelectProps {
 /** Picker reutilizavel de conta, usado pelos formularios de lancamento/transferencia/parcelamento (FE-4) e pelo filtro da lista. */
 export function AccountSelect({
   id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   value,
   onValueChange,
   disabled,
@@ -37,7 +42,7 @@ export function AccountSelect({
       onValueChange={(next) => onValueChange(next === NONE ? undefined : next)}
       disabled={disabled}
     >
-      <SelectTrigger id={id}>
+      <SelectTrigger id={id} aria-describedby={ariaDescribedBy} aria-invalid={ariaInvalid}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

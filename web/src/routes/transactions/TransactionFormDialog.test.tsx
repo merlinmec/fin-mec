@@ -138,6 +138,28 @@ describe("TransactionFormDialog", () => {
     );
   });
 
+  it("troca entre despesa e receita pelas setas, como um radio group", async () => {
+    const user = userEvent.setup();
+    renderWithClient(
+      <TransactionFormDialog open onOpenChange={vi.fn()} defaultAccountId={ACCOUNT_ID} />,
+    );
+    const expense = screen.getByRole("radio", { name: "Despesa" });
+    const income = screen.getByRole("radio", { name: "Receita" });
+    // Uma parada só de Tab para o grupo: a opção marcada.
+    expect(expense).toHaveAttribute("tabindex", "0");
+    expect(income).toHaveAttribute("tabindex", "-1");
+
+    expense.focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(income).toHaveFocus();
+    expect(income).toHaveAttribute("aria-checked", "true");
+
+    await user.keyboard("{ArrowRight}");
+    expect(expense).toHaveFocus();
+    expect(expense).toHaveAttribute("aria-checked", "true");
+  });
+
   it("envia regra e data final so quando o lancamento repete", async () => {
     const user = userEvent.setup();
     renderWithClient(
@@ -168,6 +190,12 @@ describe("TransactionFormDialog", () => {
     expect(screen.getAllByText("Selecione uma conta")).toHaveLength(2);
     expect(screen.getByText("Informe uma descrição")).toBeInTheDocument();
     expect(createTransaction).not.toHaveBeenCalled();
+
+    // Leitor de tela: o campo anuncia o motivo do erro, não só "inválido".
+    expect(screen.getByLabelText("Valor")).toHaveAccessibleDescription("Informe um valor válido");
+    expect(screen.getByLabelText("Descrição")).toHaveAccessibleDescription("Informe uma descrição");
+    expect(screen.getByLabelText("Conta")).toHaveAccessibleDescription("Selecione uma conta");
+    expect(screen.getByLabelText("Conta")).toHaveAttribute("aria-invalid", "true");
   });
 
   it("mostra o erro do backend e mantem o dialog aberto", async () => {
