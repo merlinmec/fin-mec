@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useRef } from "react";
+import { StrictMode, useRef } from "react";
 import { Link, MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { useRouteFocus } from "./useRouteFocus";
 
@@ -23,15 +23,18 @@ function Shell() {
 }
 
 function renderApp() {
+  // StrictMode como no app (main.tsx): em dev ele roda cada efeito duas vezes na montagem.
   render(
-    <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route element={<Shell />}>
-          <Route index element={<h1>Visão geral</h1>} />
-          <Route path="contas" element={<h1>Contas</h1>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<Shell />}>
+            <Route index element={<h1>Visão geral</h1>} />
+            <Route path="contas" element={<h1>Contas</h1>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </StrictMode>,
   );
 }
 
