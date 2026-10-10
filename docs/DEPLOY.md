@@ -59,23 +59,36 @@ verificação em duas etapas em Configurações → Segurança.
 
 ## Rodar no próprio computador
 
-Para usar o fin-mec sem VPS: a mesma stack roda no seu computador, em `https://localhost`, e fica
-disponível sempre que ele estiver ligado. `docker-compose.local.yml` só troca o destino dos backups
-para uma pasta do computador.
+Para usar o fin-mec sem VPS: a mesma stack roda no seu computador, em `https://fin-mec.localhost`,
+fica disponível sempre que ele estiver ligado e se atualiza sozinha quando a `main` muda.
+`docker-compose.local.yml` só troca o destino dos backups para uma pasta do computador.
 
-1. No `.env.prod`: `DOMAIN=localhost`, `MECFIN_BASE_URL=https://localhost` e
+1. Use um clone **só para a produção**, sempre na `main`, separado da pasta onde você desenvolve.
+   Assim, uma branch em andamento nunca é publicada:
+
+   ```bash
+   git clone --branch main https://github.com/merlinmec/fin-mec.git fin-mec-producao
+   cd fin-mec-producao && cp .env.prod.example .env.prod
+   ```
+
+2. No `.env.prod`: `DOMAIN=fin-mec.localhost`, `MECFIN_BASE_URL=https://fin-mec.localhost` e
    `BACKUP_DIR=` uma pasta do computador. Numa pasta sincronizada (OneDrive, Google Drive), o backup
    ganha cópia fora da máquina de graça. Os dumps têm todos os seus dados financeiros: use uma
    conta de nuvem só sua.
-2. Suba:
+
+   Por que `fin-mec.localhost` e não `localhost`: cookies são separados por nome de host, não por
+   porta. Outro projeto em `localhost:3000` enxergaria e sobrescreveria o cookie de sessão do
+   fin-mec. Os navegadores resolvem qualquer `*.localhost` para o próprio computador, então cada
+   projeto pode ter o seu (`outro-projeto.localhost`).
+3. Suba:
 
    ```bash
    docker compose -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.prod up -d --build
    ```
 
-3. Confie no certificado do Caddy (uma vez só). Com `localhost`, o Caddy usa uma CA interna própria.
-   Sem confiar nela, o navegador mostra aviso de certificado e não deixa instalar o app. No Windows,
-   sem precisar de administrador:
+4. Confie no certificado do Caddy (uma vez só). Para nomes locais, o Caddy usa uma CA interna
+   própria. Sem confiar nela, o navegador mostra aviso de certificado e não deixa instalar o app. No
+   Windows, sem precisar de administrador:
 
    ```bash
    docker compose -f docker-compose.prod.yml cp caddy:/data/caddy/pki/authorities/local/root.crt fin-mec-ca.crt
@@ -84,10 +97,19 @@ para uma pasta do computador.
 
    A CA fica no volume `caddy-data`. Se esse volume for apagado, o Caddy gera outra e é preciso
    repetir este passo.
-4. No Docker Desktop, ligue "Start Docker Desktop when you sign in to your computer". Os containers
+5. No Docker Desktop, ligue "Start Docker Desktop when you sign in to your computer". Os containers
    têm `restart: unless-stopped` e voltam sozinhos quando o Docker inicia.
+6. Atualização automática (Windows): registra uma tarefa do seu usuário, sem administrador, que
+   roda `deploy/local-update.ps1` no login e a cada 15 minutos:
 
-Para atualizar depois de um `git pull`, rode o mesmo comando do passo 2.
+   ```bash
+   powershell -NoProfile -ExecutionPolicy Bypass -File deploy/install-local-autoupdate.ps1
+   ```
+
+   Quando a `main` do GitHub muda, ela faz um backup extra do banco, baixa a versão nova e
+   reconstrói. A `main` só recebe código com a CI verde (ruleset), então o que chega já passou por
+   testes e build. Sem versão nova, ela só garante que os containers estão de pé. O histórico fica em
+   `%LOCALAPPDATA%/fin-mec/update.log`.
 
 ## Atualizar
 
