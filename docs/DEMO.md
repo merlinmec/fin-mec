@@ -39,6 +39,10 @@ pronto.
 
 O Flyway cria o schema sozinho na primeira subida.
 
+Atalho: em vez das três variáveis `SPRING_DATASOURCE_*`, a aplicação também aceita o texto de
+conexão do Neon inteiro numa variável `DATABASE_URL` (`postgresql://usuario:senha@host/banco?...`).
+Ela separa usuário e senha sozinha e troca um host `-pooler` pelo endpoint direto.
+
 ### 2. Serviço no Render (gratuito)
 
 1. Crie uma conta em https://render.com entrando com o GitHub.

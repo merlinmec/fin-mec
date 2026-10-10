@@ -109,7 +109,8 @@ mecfin:
     history-days: 90
   app:
     # URL pública do app — vai nos links dos e-mails (redefinição de senha).
-    base-url: ${MECFIN_BASE_URL:http://localhost:5173}
+    # No Render, RENDER_EXTERNAL_URL vem preenchida pela própria plataforma (demonstração pública).
+    base-url: ${MECFIN_BASE_URL:${RENDER_EXTERNAL_URL:http://localhost:5173}}
   mail:
     from: ${MAIL_FROM:fin-mec <no-reply@localhost>}
   security:
