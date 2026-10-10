@@ -7,6 +7,7 @@ import { saveBlob } from "@/api/client";
 import { useAuth } from "@/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Panel } from "@/components/ui/panel";
 import { getErrorMessage } from "@/lib/errors";
@@ -51,9 +52,8 @@ export function ExportDataSection() {
         >
           <div className="space-y-1.5">
             <Label htmlFor="export-password">Senha</Label>
-            <Input
+            <PasswordInput
               id="export-password"
-              type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
