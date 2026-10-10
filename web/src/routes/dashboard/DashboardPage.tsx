@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDownRight, ArrowUpRight, Clock, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { isVisitor } from "@/api/demo";
 import { useAuth } from "@/auth/auth-context";
 import { MonthSelector } from "@/components/MonthSelector";
 import { CashFlowChart } from "@/components/charts/CashFlowChart";
@@ -44,7 +45,8 @@ export function DashboardPage() {
   const { data, isPending, isError } = useDashboard(month);
   const cashFlow = useCashFlow({ from: shiftYearMonth(month, -5), to: month });
   const { hidden, toggle, mask } = useBalanceVisibility();
-  const name = user?.email.split("@")[0];
+  // Conta de visitante da demonstração tem um e-mail técnico: cumprimenta só como "visitante".
+  const name = isVisitor(user) ? "visitante" : user?.email.split("@")[0];
 
   return (
     <div className="space-y-5">
