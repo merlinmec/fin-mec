@@ -36,6 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { NotificationBell } from "@/components/NotificationBell";
 import { CommandPalette } from "@/components/CommandPalette";
 import { OfflineBanner } from "@/app/pwa";
+import { DemoBanner } from "@/components/DemoBanner";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { useRouteFocus } from "./useRouteFocus";
@@ -181,6 +182,7 @@ function ShellLayout() {
         </div>
       </header>
 
+      <DemoBanner />
       <OfflineBanner />
       <main
         ref={mainRef}

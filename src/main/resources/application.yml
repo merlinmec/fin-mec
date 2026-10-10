@@ -119,6 +119,9 @@ mecfin:
     lockout:
       max-attempts: 5
       duration: PT15M
+  # Demonstração pública (botão "Testar" do portfólio): ver módulo demo e o perfil "demo" abaixo.
+  demo:
+    enabled: false
 
 ---
 spring:
@@ -162,3 +165,25 @@ management:
     health:
       probes:
         enabled: true
+
+---
+# Deploy da demonstração pública (docs/DEMO.md): use junto com o prod, SPRING_PROFILES_ACTIVE=prod,demo.
+# Cada visitante ganha uma conta temporária com dados fictícios, apagada depois do ttl.
+spring:
+  config:
+    activate:
+      on-profile: demo
+  # A limpeza de sessões expiradas roda a cada 5 minutos (configuração base), e cada uma acorda o banco
+  # gratuito (o Neon só dorme sem consultas, e acordado gasta as horas de computação do plano). Uma
+  # vez por hora, junto da limpeza das contas de visitante, basta.
+  session:
+    jdbc:
+      cleanup-cron: "0 0 * * * *"
+
+mecfin:
+  demo:
+    enabled: true
+    ttl: PT24H
+    # Contas de visitante ao mesmo tempo: teto para o banco gratuito (0,5 GB no Neon).
+    max-active: 300
+    sessions-per-ip-per-hour: 10
