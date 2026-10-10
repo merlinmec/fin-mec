@@ -11,6 +11,8 @@ import { CategorySelect } from "@/components/CategorySelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCreateBill, useUpdateBill } from "./hooks";
@@ -99,8 +101,8 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }) {
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="bill-description">Descrição</Label>
-          <Input id="bill-description" autoComplete="off" aria-invalid={!!errors.description} {...register("description")} />
-          {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+          <Input id="bill-description" aria-describedby={errorDescribedBy("bill-description", errors.description)} autoComplete="off" aria-invalid={!!errors.description} {...register("description")} />
+          <FieldError id="bill-description-error" error={errors.description} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -108,17 +110,18 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }) {
             <Label htmlFor="bill-amount">Valor</Label>
             <Input
               id="bill-amount"
+              aria-describedby={errorDescribedBy("bill-amount", errors.amount)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.amount}
               {...register("amount", { valueAsNumber: true })}
             />
-            {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+            <FieldError id="bill-amount-error" error={errors.amount} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="bill-due-date">Vencimento</Label>
-            <Input id="bill-due-date" type="date" aria-invalid={!!errors.dueDate} {...register("dueDate")} />
-            {errors.dueDate && <p className="text-sm text-destructive">{errors.dueDate.message}</p>}
+            <Input id="bill-due-date" aria-describedby={errorDescribedBy("bill-due-date", errors.dueDate)} type="date" aria-invalid={!!errors.dueDate} {...register("dueDate")} />
+            <FieldError id="bill-due-date-error" error={errors.dueDate} />
           </div>
         </div>
 
