@@ -11,6 +11,9 @@ const NONE = "__none__";
 
 interface CategorySelectProps {
   id?: string;
+  /** Repassados ao gatilho: liga a mensagem de erro do formulário (ver FieldError). */
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
   value: string | undefined;
   onValueChange: (id: string | undefined) => void;
   /** Restringe as opcoes a um tipo (ex.: formulario de despesa so mostra categorias EXPENSE). Sem isso, agrupa os dois tipos. */
@@ -31,6 +34,8 @@ interface CategorySelectProps {
  */
 export function CategorySelect({
   id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   value,
   onValueChange,
   type,
@@ -54,7 +59,7 @@ export function CategorySelect({
       onValueChange={(next) => onValueChange(next === NONE ? undefined : next)}
       disabled={disabled}
     >
-      <SelectTrigger id={id}>
+      <SelectTrigger id={id} aria-describedby={ariaDescribedBy} aria-invalid={ariaInvalid}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

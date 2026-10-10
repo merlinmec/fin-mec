@@ -53,6 +53,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/money";
 import { useTheme, type ThemePreference } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { handleRadioGroupKeyDown } from "@/lib/radio-group";
 import { ExportDataSection } from "./ExportDataSection";
 import { HouseholdSection } from "./HouseholdSection";
 import { RulesSection } from "./RulesSection";
@@ -380,13 +381,17 @@ function AppearanceSection() {
   const { preference, setPreference } = useTheme();
   return (
     <Panel title="Tema" description="A preferência fica salva neste navegador.">
-      <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Tema">
+      <div className="grid gap-3 sm:grid-cols-3" role="radiogroup"
+        aria-label="Tema"
+        onKeyDown={handleRadioGroupKeyDown}
+      >
         {THEMES.map((t) => (
           <button
             key={t.value}
             type="button"
             role="radio"
             aria-checked={preference === t.value}
+            tabIndex={preference === t.value ? 0 : -1}
             onClick={() => setPreference(t.value)}
             className={cn(
               "flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all",

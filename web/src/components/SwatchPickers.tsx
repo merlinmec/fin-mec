@@ -1,5 +1,6 @@
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/category-icons";
 import { cn } from "@/lib/utils";
+import { handleRadioGroupKeyDown, radioTabIndex } from "@/lib/radio-group";
 
 /** Paleta de cores com nome acessível (o hex sozinho não diz nada a um leitor de tela). */
 const COLOR_NAMES: Record<string, string> = {
@@ -25,14 +26,18 @@ export function ColorSwatchPicker({
   onChange: (color: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Cor">
-      {CATEGORY_COLORS.map((color) => (
+    <div className="flex flex-wrap gap-2" role="radiogroup"
+      aria-label="Cor"
+      onKeyDown={handleRadioGroupKeyDown}
+    >
+      {CATEGORY_COLORS.map((color, index) => (
         <button
           key={color}
           type="button"
           role="radio"
           aria-label={COLOR_NAMES[color] ?? color}
           aria-checked={value === color}
+          tabIndex={radioTabIndex(value === color, index, (CATEGORY_COLORS as readonly string[]).includes(value ?? ""))}
           onClick={() => onChange(color)}
           className={cn(
             "size-7 rounded-full ring-offset-2 ring-offset-card transition-all",
@@ -57,8 +62,11 @@ export function IconPicker({
 }) {
   const options = names ?? Object.keys(CATEGORY_ICONS);
   return (
-    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Ícone">
-      {options.map((name) => {
+    <div className="flex flex-wrap gap-1.5" role="radiogroup"
+      aria-label="Ícone"
+      onKeyDown={handleRadioGroupKeyDown}
+    >
+      {options.map((name, index) => {
         const Icon = CATEGORY_ICONS[name];
         if (!Icon) return null;
         const active = value === name;
@@ -69,6 +77,7 @@ export function IconPicker({
             role="radio"
             aria-label={name}
             aria-checked={active}
+            tabIndex={radioTabIndex(active, index, options.includes(value ?? ""))}
             onClick={() => onChange(name)}
             className={cn(
               "flex size-9 items-center justify-center rounded-lg border transition-colors",

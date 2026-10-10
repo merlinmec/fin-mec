@@ -220,6 +220,12 @@
     outline-color: var(--color-ring);
   }
 
+  /* Título que recebe o foco na troca de página (useRouteFocus): é ponto de leitura, não
+     controle, então não ganha anel de foco. */
+  h1[tabindex="-1"]:focus {
+    outline: none;
+  }
+
   a {
     text-underline-offset: 3px;
   }

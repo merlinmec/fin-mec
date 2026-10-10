@@ -8,6 +8,8 @@ import { formatMoney } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -82,32 +84,33 @@ function CreateAccountForm({ onDone }: { onDone: () => void }) {
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="name">Nome</Label>
-          <Input id="name" autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
-          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          <Input id="name" aria-describedby={errorDescribedBy("name", errors.name)} autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
+          <FieldError id="name-error" error={errors.name} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="type">Tipo</Label>
-          <NativeSelect id="type" aria-invalid={!!errors.type} {...register("type")}>
+          <NativeSelect id="type" aria-describedby={errorDescribedBy("type", errors.type)} aria-invalid={!!errors.type} {...register("type")}>
             {ACCOUNT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {ACCOUNT_TYPE_LABELS[type]}
               </option>
             ))}
           </NativeSelect>
-          {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
+          <FieldError id="type-error" error={errors.type} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="initialBalance">Saldo inicial</Label>
           <Input
             id="initialBalance"
+            aria-describedby={errorDescribedBy("initialBalance", errors.initialBalance)}
             type="number"
             step="0.01"
             aria-invalid={!!errors.initialBalance}
             {...register("initialBalance", { valueAsNumber: true })}
           />
-          {errors.initialBalance && <p className="text-sm text-destructive">{errors.initialBalance.message}</p>}
+          <FieldError id="initialBalance-error" error={errors.initialBalance} />
         </div>
 
         {formError && (
@@ -161,20 +164,20 @@ function EditAccountForm({ account, onDone }: { account: Account; onDone: () => 
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="edit-name">Nome</Label>
-          <Input id="edit-name" autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
-          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          <Input id="edit-name" aria-describedby={errorDescribedBy("edit-name", errors.name)} autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
+          <FieldError id="edit-name-error" error={errors.name} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="edit-type">Tipo</Label>
-          <NativeSelect id="edit-type" aria-invalid={!!errors.type} {...register("type")}>
+          <NativeSelect id="edit-type" aria-describedby={errorDescribedBy("edit-type", errors.type)} aria-invalid={!!errors.type} {...register("type")}>
             {ACCOUNT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {ACCOUNT_TYPE_LABELS[type]}
               </option>
             ))}
           </NativeSelect>
-          {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
+          <FieldError id="edit-type-error" error={errors.type} />
         </div>
 
         <div className="flex items-center gap-2">

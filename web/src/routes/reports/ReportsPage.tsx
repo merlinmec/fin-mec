@@ -14,6 +14,7 @@ import { useCashFlow, useCategoryReport } from "@/hooks/useFeatureData";
 import { currentYearMonth, formatYearMonth, shiftYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { handleRadioGroupKeyDown } from "@/lib/radio-group";
 
 type Preset = "3" | "6" | "12" | "year";
 
@@ -53,6 +54,7 @@ export function ReportsPage() {
             className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1"
             role="radiogroup"
             aria-label="Período"
+            onKeyDown={handleRadioGroupKeyDown}
           >
             {PRESETS.map((p) => (
               <button
@@ -60,6 +62,7 @@ export function ReportsPage() {
                 type="button"
                 role="radio"
                 aria-checked={preset === p.value}
+                tabIndex={preset === p.value ? 0 : -1}
                 onClick={() => setPreset(p.value)}
                 className={cn(
                   "rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all",
@@ -150,6 +153,7 @@ export function ReportsPage() {
             className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1"
             role="radiogroup"
             aria-label="Tipo"
+            onKeyDown={handleRadioGroupKeyDown}
           >
             {(["EXPENSE", "INCOME"] as EntryType[]).map((t) => (
               <button
@@ -157,6 +161,7 @@ export function ReportsPage() {
                 type="button"
                 role="radio"
                 aria-checked={type === t}
+                tabIndex={type === t ? 0 : -1}
                 onClick={() => setType(t)}
                 className={cn(
                   "rounded-md px-3 py-1 text-xs font-semibold transition-all",
@@ -171,7 +176,11 @@ export function ReportsPage() {
           </div>
         }
       >
-        {!categories.data ? (
+        {categories.isError ? (
+          <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            Não foi possível carregar o ranking por categoria. Tente recarregar a página.
+          </p>
+        ) : !categories.data ? (
           <Skeleton className="h-64 rounded-xl" />
         ) : categories.data.categories.length === 0 ? (
           <EmptyState

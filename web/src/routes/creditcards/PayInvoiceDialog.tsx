@@ -10,6 +10,8 @@ import { AccountSelect } from "@/components/AccountSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePayInvoice } from "./hooks";
 import { payInvoiceSchema, type PayInvoiceFormValues } from "./pay-invoice-schema";
@@ -114,28 +116,31 @@ function PayInvoiceForm({
           <Label htmlFor="invoice-pay-account">Conta de pagamento</Label>
           <AccountSelect
             id="invoice-pay-account"
+            aria-describedby={errorDescribedBy("invoice-pay-account", errors.accountId)}
+            aria-invalid={!!errors.accountId}
             value={accountId}
             onValueChange={(v) => setValue("accountId", v ?? "", { shouldValidate: true })}
           />
-          {errors.accountId && <p className="text-sm text-destructive">{errors.accountId.message}</p>}
+          <FieldError id="invoice-pay-account-error" error={errors.accountId} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="invoice-pay-date">Data do pagamento</Label>
-            <Input id="invoice-pay-date" type="date" aria-invalid={!!errors.paymentDate} {...register("paymentDate")} />
-            {errors.paymentDate && <p className="text-sm text-destructive">{errors.paymentDate.message}</p>}
+            <Input id="invoice-pay-date" aria-describedby={errorDescribedBy("invoice-pay-date", errors.paymentDate)} type="date" aria-invalid={!!errors.paymentDate} {...register("paymentDate")} />
+            <FieldError id="invoice-pay-date-error" error={errors.paymentDate} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="invoice-pay-amount">Valor pago</Label>
             <Input
               id="invoice-pay-amount"
+              aria-describedby={errorDescribedBy("invoice-pay-amount", errors.paidAmount)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.paidAmount}
               {...register("paidAmount", { valueAsNumber: true })}
             />
-            {errors.paidAmount && <p className="text-sm text-destructive">{errors.paidAmount.message}</p>}
+            <FieldError id="invoice-pay-amount-error" error={errors.paidAmount} />
           </div>
         </div>
 
