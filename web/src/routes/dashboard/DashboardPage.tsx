@@ -7,7 +7,7 @@ import { CashFlowChart } from "@/components/charts/CashFlowChart";
 import { BalanceChart } from "@/components/charts/BalanceChart";
 import { Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
+import { MASK, useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useCashFlow } from "@/hooks/useFeatureData";
 import { currentYearMonth, formatYearMonth, shiftYearMonth } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -122,12 +122,14 @@ export function DashboardPage() {
                     tone="in"
                     label="Recebido"
                     value={data.monthlyIncome}
+                    hidden={hidden}
                     icon={<ArrowDownRight className="size-4" />}
                   />
                   <FlowTile
                     tone="out"
                     label="Pago"
                     value={data.monthlyExpense}
+                    hidden={hidden}
                     icon={<ArrowUpRight className="size-4" />}
                   />
                   <FlowTile
@@ -135,6 +137,7 @@ export function DashboardPage() {
                     pending
                     label="A receber"
                     value={data.pendingIncome}
+                    hidden={hidden}
                     icon={<Clock className="size-4" />}
                   />
                   <FlowTile
@@ -142,6 +145,7 @@ export function DashboardPage() {
                     pending
                     label="A pagar"
                     value={data.pendingExpense}
+                    hidden={hidden}
                     icon={<Clock className="size-4" />}
                   />
                 </div>
@@ -176,7 +180,7 @@ export function DashboardPage() {
               action={seeAll("/relatorios", "Relatórios")}
             >
               {cashFlow.data ? (
-                <CashFlowChart months={cashFlow.data.months} />
+                <CashFlowChart months={cashFlow.data.months} hidden={hidden} />
               ) : (
                 <Skeleton className="h-[270px] rounded-xl" />
               )}
@@ -186,7 +190,7 @@ export function DashboardPage() {
               description="Efetivados no mês"
               action={seeAll("/relatorios")}
             >
-              <ExpensesByCategoryChart expenses={data.expensesByCategory} />
+              <ExpensesByCategoryChart expenses={data.expensesByCategory} hidden={hidden} />
             </Panel>
           </div>
 
@@ -238,12 +242,14 @@ function FlowTile({
   value,
   tone,
   pending = false,
+  hidden,
   icon,
 }: {
   label: string;
   value: number;
   tone: "in" | "out";
   pending?: boolean;
+  hidden: boolean;
   icon: ReactNode;
 }) {
   return (
@@ -263,7 +269,7 @@ function FlowTile({
         <span className={pending ? "text-muted-foreground" : undefined}>{label}</span>
       </div>
       <div className={cn("num mt-1 text-base font-bold", pending && "text-muted-foreground")}>
-        {formatMoney(value)}
+        {hidden ? MASK : formatMoney(value)}
       </div>
     </div>
   );
