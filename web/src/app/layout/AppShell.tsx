@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { handleRadioGroupKeyDown } from "@/lib/radio-group";
 import { useAuth } from "@/auth/auth-context";
 import { QuickAddProvider, useQuickAdd } from "@/app/quick-add";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { OfflineBanner } from "@/app/pwa";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useTheme, type ThemePreference } from "@/lib/theme";
+import { useRouteFocus } from "./useRouteFocus";
 
 /**
  * Casca autenticada (FE-10). Mantém a topologia "tudo no topo" do FE-9.1
@@ -86,6 +88,8 @@ function ShellLayout() {
   const balances = useBalanceVisibility();
   const { openEntry } = useQuickAdd();
   const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  useRouteFocus(mainRef);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -104,6 +108,12 @@ function ShellLayout() {
 
   return (
     <div className="min-h-dvh bg-background">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-card"
+      >
+        Pular para o conteúdo
+      </a>
       <header className="sticky top-0 z-40 bg-topbar text-topbar-foreground shadow-[0_1px_0_oklch(0_0_0/0.08),0_4px_18px_-10px_oklch(0.3_0.1_148/0.6)]">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-1 px-4 sm:px-6">
           <NavLink
@@ -172,7 +182,12 @@ function ShellLayout() {
       </header>
 
       <OfflineBanner />
-      <main className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-5 pb-28 sm:px-6 lg:pt-7 lg:pb-12">
+      <main
+        ref={mainRef}
+        id="conteudo"
+        tabIndex={-1}
+        className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-5 pb-28 outline-none sm:px-6 lg:pt-7 lg:pb-12"
+      >
         <Outlet />
       </main>
 
@@ -303,6 +318,7 @@ function UserMenu({
             className="mx-1.5 mb-1.5 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1"
             role="radiogroup"
             aria-label="Tema"
+            onKeyDown={handleRadioGroupKeyDown}
           >
             {THEME_OPTIONS.map((option) => (
               <button
@@ -310,6 +326,7 @@ function UserMenu({
                 type="button"
                 role="radio"
                 aria-checked={preference === option.value}
+                tabIndex={preference === option.value ? 0 : -1}
                 onClick={() => setPreference(option.value)}
                 className={cn(
                   "flex items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-all",

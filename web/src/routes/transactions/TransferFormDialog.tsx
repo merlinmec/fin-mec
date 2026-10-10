@@ -7,6 +7,8 @@ import { AccountSelect } from "@/components/AccountSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
@@ -83,22 +85,24 @@ function TransferForm({ onDone }: { onDone: () => void }) {
           <Label htmlFor="transfer-source">De</Label>
           <AccountSelect
             id="transfer-source"
+            aria-describedby={errorDescribedBy("transfer-source", errors.sourceAccountId)}
+            aria-invalid={!!errors.sourceAccountId}
             value={sourceAccountId}
             onValueChange={(v) => setValue("sourceAccountId", v ?? "", { shouldValidate: true })}
           />
-          {errors.sourceAccountId && <p className="text-sm text-destructive">{errors.sourceAccountId.message}</p>}
+          <FieldError id="transfer-source-error" error={errors.sourceAccountId} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="transfer-destination">Para</Label>
           <AccountSelect
             id="transfer-destination"
+            aria-describedby={errorDescribedBy("transfer-destination", errors.destinationAccountId)}
+            aria-invalid={!!errors.destinationAccountId}
             value={destinationAccountId}
             onValueChange={(v) => setValue("destinationAccountId", v ?? "", { shouldValidate: true })}
           />
-          {errors.destinationAccountId && (
-            <p className="text-sm text-destructive">{errors.destinationAccountId.message}</p>
-          )}
+          <FieldError id="transfer-destination-error" error={errors.destinationAccountId} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -106,12 +110,13 @@ function TransferForm({ onDone }: { onDone: () => void }) {
             <Label htmlFor="transfer-amount">Valor</Label>
             <Input
               id="transfer-amount"
+              aria-describedby={errorDescribedBy("transfer-amount", errors.amount)}
               type="number"
               step="0.01"
               aria-invalid={!!errors.amount}
               {...register("amount", { valueAsNumber: true })}
             />
-            {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+            <FieldError id="transfer-amount-error" error={errors.amount} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="transfer-status">Status</Label>
@@ -126,11 +131,12 @@ function TransferForm({ onDone }: { onDone: () => void }) {
           <Label htmlFor="transfer-description">Descrição</Label>
           <Input
             id="transfer-description"
+            aria-describedby={errorDescribedBy("transfer-description", errors.description)}
             autoComplete="off"
             aria-invalid={!!errors.description}
             {...register("description")}
           />
-          {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+          <FieldError id="transfer-description-error" error={errors.description} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -138,6 +144,7 @@ function TransferForm({ onDone }: { onDone: () => void }) {
             <Label htmlFor="transfer-date">Data</Label>
             <Input
               id="transfer-date"
+              aria-describedby={errorDescribedBy("transfer-date", errors.transactionDate)}
               type="date"
               aria-invalid={!!errors.transactionDate}
               {...register("transactionDate", {
@@ -146,12 +153,12 @@ function TransferForm({ onDone }: { onDone: () => void }) {
                 },
               })}
             />
-            {errors.transactionDate && <p className="text-sm text-destructive">{errors.transactionDate.message}</p>}
+            <FieldError id="transfer-date-error" error={errors.transactionDate} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="transfer-competence">Competência</Label>
-            <Input id="transfer-competence" type="month" aria-invalid={!!errors.competenceMonth} {...register("competenceMonth")} />
-            {errors.competenceMonth && <p className="text-sm text-destructive">{errors.competenceMonth.message}</p>}
+            <Input id="transfer-competence" aria-describedby={errorDescribedBy("transfer-competence", errors.competenceMonth)} type="month" aria-invalid={!!errors.competenceMonth} {...register("competenceMonth")} />
+            <FieldError id="transfer-competence-error" error={errors.competenceMonth} />
           </div>
         </div>
 

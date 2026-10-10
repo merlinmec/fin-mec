@@ -7,6 +7,8 @@ import { AccountSelect } from "@/components/AccountSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCreateCreditCard, useUpdateCreditCard } from "./hooks";
 import { createCreditCardSchema, updateCreditCardSchema, type CreateCreditCardFormValues, type UpdateCreditCardFormValues } from "./creditcard-schema";
@@ -67,20 +69,21 @@ function CreateCardForm({ onDone }: { onDone: () => void }) {
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="card-name">Nome</Label>
-          <Input id="card-name" autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
-          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          <Input id="card-name" aria-describedby={errorDescribedBy("card-name", errors.name)} autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
+          <FieldError id="card-name-error" error={errors.name} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="card-limit">Limite</Label>
           <Input
             id="card-limit"
+            aria-describedby={errorDescribedBy("card-limit", errors.creditLimit)}
             type="number"
             step="0.01"
             aria-invalid={!!errors.creditLimit}
             {...register("creditLimit", { valueAsNumber: true })}
           />
-          {errors.creditLimit && <p className="text-sm text-destructive">{errors.creditLimit.message}</p>}
+          <FieldError id="card-limit-error" error={errors.creditLimit} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -88,25 +91,27 @@ function CreateCardForm({ onDone }: { onDone: () => void }) {
             <Label htmlFor="card-closing-day">Dia de fechamento</Label>
             <Input
               id="card-closing-day"
+              aria-describedby={errorDescribedBy("card-closing-day", errors.closingDay)}
               type="number"
               min={1}
               max={31}
               aria-invalid={!!errors.closingDay}
               {...register("closingDay", { valueAsNumber: true })}
             />
-            {errors.closingDay && <p className="text-sm text-destructive">{errors.closingDay.message}</p>}
+            <FieldError id="card-closing-day-error" error={errors.closingDay} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="card-due-day">Dia de vencimento</Label>
             <Input
               id="card-due-day"
+              aria-describedby={errorDescribedBy("card-due-day", errors.dueDay)}
               type="number"
               min={1}
               max={31}
               aria-invalid={!!errors.dueDay}
               {...register("dueDay", { valueAsNumber: true })}
             />
-            {errors.dueDay && <p className="text-sm text-destructive">{errors.dueDay.message}</p>}
+            <FieldError id="card-due-day-error" error={errors.dueDay} />
           </div>
         </div>
 
@@ -181,20 +186,21 @@ function EditCardForm({ card, onDone }: { card: CreditCard; onDone: () => void }
       <form className="space-y-4" onSubmit={(e) => void handleSubmit(onSubmit)(e)} noValidate>
         <div className="space-y-1.5">
           <Label htmlFor="edit-card-name">Nome</Label>
-          <Input id="edit-card-name" autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
-          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+          <Input id="edit-card-name" aria-describedby={errorDescribedBy("edit-card-name", errors.name)} autoComplete="off" aria-invalid={!!errors.name} {...register("name")} />
+          <FieldError id="edit-card-name-error" error={errors.name} />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="edit-card-limit">Limite</Label>
           <Input
             id="edit-card-limit"
+            aria-describedby={errorDescribedBy("edit-card-limit", errors.creditLimit)}
             type="number"
             step="0.01"
             aria-invalid={!!errors.creditLimit}
             {...register("creditLimit", { valueAsNumber: true })}
           />
-          {errors.creditLimit && <p className="text-sm text-destructive">{errors.creditLimit.message}</p>}
+          <FieldError id="edit-card-limit-error" error={errors.creditLimit} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -202,25 +208,27 @@ function EditCardForm({ card, onDone }: { card: CreditCard; onDone: () => void }
             <Label htmlFor="edit-card-closing-day">Dia de fechamento</Label>
             <Input
               id="edit-card-closing-day"
+              aria-describedby={errorDescribedBy("edit-card-closing-day", errors.closingDay)}
               type="number"
               min={1}
               max={31}
               aria-invalid={!!errors.closingDay}
               {...register("closingDay", { valueAsNumber: true })}
             />
-            {errors.closingDay && <p className="text-sm text-destructive">{errors.closingDay.message}</p>}
+            <FieldError id="edit-card-closing-day-error" error={errors.closingDay} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="edit-card-due-day">Dia de vencimento</Label>
             <Input
               id="edit-card-due-day"
+              aria-describedby={errorDescribedBy("edit-card-due-day", errors.dueDay)}
               type="number"
               min={1}
               max={31}
               aria-invalid={!!errors.dueDay}
               {...register("dueDay", { valueAsNumber: true })}
             />
-            {errors.dueDay && <p className="text-sm text-destructive">{errors.dueDay.message}</p>}
+            <FieldError id="edit-card-due-day-error" error={errors.dueDay} />
           </div>
         </div>
 

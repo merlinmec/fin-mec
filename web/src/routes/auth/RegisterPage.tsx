@@ -8,6 +8,8 @@ import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { registerSchema, type RegisterFormValues } from "./register-schema";
 
 /**
@@ -60,27 +62,31 @@ export function RegisterPage() {
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
+                aria-describedby={errorDescribedBy("email", errors.email)}
                 type="email"
                 autoComplete="email"
                 aria-invalid={!!errors.email}
                 {...register("email")}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+              <FieldError id="email-error" error={errors.email} />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
+                aria-describedby={errors.password ? "password-error" : "password-hint"}
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
                 {...register("password")}
               />
               {errors.password ? (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
+                <FieldError id="password-error" error={errors.password} />
               ) : (
-                <p className="text-sm text-muted-foreground">Mínimo de 10 caracteres.</p>
+                <p id="password-hint" className="text-sm text-muted-foreground">
+                  Mínimo de 10 caracteres.
+                </p>
               )}
             </div>
 

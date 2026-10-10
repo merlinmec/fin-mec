@@ -8,6 +8,8 @@ import { nextQuery, safeNext } from "@/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldError } from "@/components/ui/field-error";
+import { errorDescribedBy } from "@/lib/field-error";
 import { loginSchema, type LoginFormValues } from "./login-schema";
 
 /** POST /api/auth/login. Redireciona para ?next= (se houver) ou para a raiz. */
@@ -133,14 +135,13 @@ export function LoginPage() {
                   <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
+                    aria-describedby={errorDescribedBy("email", errors.email)}
                     type="email"
                     autoComplete="email"
                     aria-invalid={!!errors.email}
                     {...register("email")}
                   />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
+                  <FieldError id="email-error" error={errors.email} />
                 </div>
 
                 <div className="space-y-1.5">
@@ -155,14 +156,13 @@ export function LoginPage() {
                   </div>
                   <Input
                     id="password"
+                    aria-describedby={errorDescribedBy("password", errors.password)}
                     type="password"
                     autoComplete="current-password"
                     aria-invalid={!!errors.password}
                     {...register("password")}
                   />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
-                  )}
+                  <FieldError id="password-error" error={errors.password} />
                 </div>
 
                 {formError && (
