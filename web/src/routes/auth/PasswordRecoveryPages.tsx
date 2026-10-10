@@ -4,6 +4,7 @@ import { CheckCircle2, MailCheck } from "lucide-react";
 import { forgotPassword, resetPassword } from "@/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -176,9 +177,8 @@ export function ResetPasswordPage() {
         <form className="mt-5 space-y-4" onSubmit={(e) => void submit(e)} noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="reset-password">Nova senha</Label>
-            <Input
+            <PasswordInput
               id="reset-password"
-              type="password"
               autoComplete="new-password"
               autoFocus
               value={password}
@@ -187,9 +187,8 @@ export function ResetPasswordPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="reset-confirm">Confirmar nova senha</Label>
-            <Input
+            <PasswordInput
               id="reset-confirm"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
