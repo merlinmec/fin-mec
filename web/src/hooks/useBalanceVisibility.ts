@@ -1,7 +1,8 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "fin-mec:hide-balances";
-const MASK = "••••••";
+/** O que aparece no lugar de um valor quando os saldos estão ocultos. */
+export const MASK = "••••••";
 const listeners = new Set<() => void>();
 
 function read(): boolean {

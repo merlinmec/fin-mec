@@ -3,10 +3,13 @@ import type { CategoryExpense } from "@/api/dashboard";
 import { useCategories } from "@/hooks/useCategories";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Progress } from "@/components/ui/progress";
+import { MASK } from "@/hooks/useBalanceVisibility";
 import { formatMoney } from "@/lib/money";
 
 interface ExpensesByCategoryChartProps {
   expenses: CategoryExpense[];
+  /** Oculta os valores; as barras (proporção entre categorias) continuam. */
+  hidden?: boolean;
 }
 
 const MAX_ROWS = 8;
@@ -20,7 +23,10 @@ const MAX_ROWS = 8;
  * consistente), mas o rotulo direto (nome + valor) e quem carrega a leitura
  * de verdade, nao a cor.
  */
-export function ExpensesByCategoryChart({ expenses }: ExpensesByCategoryChartProps) {
+export function ExpensesByCategoryChart({
+  expenses,
+  hidden = false,
+}: ExpensesByCategoryChartProps) {
   const { data: categories } = useCategories();
   const categoriesById = new Map((categories ?? []).map((c) => [c.id, c]));
 
@@ -47,11 +53,15 @@ export function ExpensesByCategoryChart({ expenses }: ExpensesByCategoryChartPro
                 <CategoryIcon icon={category?.icon} color={category?.color} className="size-4" />
                 {expense.categoryName}
               </span>
-              <span className="tabular-nums text-muted-foreground">{formatMoney(expense.amount)}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {hidden ? MASK : formatMoney(expense.amount)}
+              </span>
             </div>
             <Progress
               value={percentage}
-              indicatorStyle={{ backgroundColor: category?.color ?? "var(--color-muted-foreground)" }}
+              indicatorStyle={{
+                backgroundColor: category?.color ?? "var(--color-muted-foreground)",
+              }}
             />
           </Link>
         );
