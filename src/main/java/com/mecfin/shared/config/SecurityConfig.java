@@ -59,6 +59,10 @@ public class SecurityConfig {
                         // gerência (9090) que não é publicada para fora (ver docker-compose.prod.yml).
                         .requestMatchers("/api/actuator/prometheus").permitAll()
                         .requestMatchers("/api/csrf").permitAll()
+                        // Demonstração pública (módulo demo): saber se o deploy é a demo e entrar
+                        // como visitante. Fora da demo, /demo/session responde 404.
+                        .requestMatchers(HttpMethod.GET, "/api/demo/status").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/demo/session").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/login/mfa",
                                 "/api/auth/password/forgot", "/api/auth/password/reset")
                         .permitAll()

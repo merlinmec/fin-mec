@@ -36,6 +36,12 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
+    // Botão "Testar" do portfólio: entra como visitante na demonstração pública.
+    path: "/demo",
+    lazy: async () => ({ Component: (await import("@/routes/auth/DemoPage")).DemoPage }),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: "/register",
     element: <RegisterPage />,
     errorElement: <RouteErrorBoundary />,

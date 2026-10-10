@@ -11,6 +11,8 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field-error";
 import { errorDescribedBy } from "@/lib/field-error";
+import { useDemoStatus } from "@/hooks/useDemoStatus";
+import { VisitorEntry } from "./DemoPage";
 import { loginSchema, type LoginFormValues } from "./login-schema";
 
 /** POST /api/auth/login. Redireciona para ?next= (se houver) ou para a raiz. */
@@ -22,6 +24,8 @@ export function LoginPage() {
   const [mfaStep, setMfaStep] = useState(false);
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
+  // Na demonstração pública não há contas de verdade: entrar é só como visitante.
+  const demo = useDemoStatus();
 
   const {
     register,
@@ -72,7 +76,9 @@ export function LoginPage() {
           <span className="text-lg font-semibold tracking-tight">fin-mec</span>
         </div>
         <div className="rounded-2xl border border-border/60 bg-card p-6 text-card-foreground shadow-sm">
-          {mfaStep ? (
+          {demo.data?.enabled ? (
+            <VisitorEntry />
+          ) : mfaStep ? (
             <>
               <h1 className="text-lg font-semibold tracking-tight">Verificação em duas etapas</h1>
               <p className="mt-1 text-sm text-muted-foreground">
