@@ -4,7 +4,7 @@
 # - Só age quando a main do GitHub mudou. A main só recebe código com a CI verde (ruleset), então
 #   o que chega aqui já passou por testes, lint e build da imagem.
 # - Antes de trocar a versão, faz um backup extra do banco (as migrations novas rodam no boot).
-# - Sempre termina com "up -d": se algum container tiver parado, volta.
+# - Sempre termina com "up -d": se algum container tiver parado, volta. Sem rede, só isso.
 #
 # Uso: powershell -NoProfile -ExecutionPolicy Bypass -File local-update.ps1 -ProdDir <clone da main>
 param(
@@ -38,7 +38,12 @@ try {
   }
   if (-not $ready) { Log "Docker não respondeu em 5 minutos; tento de novo na próxima execução."; exit 0 }
 
-  Run git @("fetch", "--quiet", "origin", "main") | Out-Null
+  # Sem rede o app continua funcionando; só não dá para saber se há versão nova.
+  & git fetch --quiet origin main *> $null
+  if ($LASTEXITCODE -ne 0) {
+    Run docker ($compose + @("up", "-d")) | Out-Null
+    exit 0
+  }
   $local = Run git @("rev-parse", "HEAD")
   $remote = Run git @("rev-parse", "origin/main")
 
