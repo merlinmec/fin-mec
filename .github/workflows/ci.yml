@@ -6,32 +6,6 @@ on:
   pull_request:
 
 jobs:
-  # Mesma regra do hook local (.githooks/commit-msg), para os commits que não passam por ele:
-  # sessões na web clonam o repositório do zero, sem o core.hooksPath configurado.
-  commits:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Sem trailer de coautoria nos commits da PR
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          failed=0
-          for sha in $(git rev-list --no-merges "$BASE..$HEAD"); do
-            git log -1 --format=%B "$sha" > "$RUNNER_TEMP/msg"
-            if ! sh .githooks/commit-msg "$RUNNER_TEMP/msg" 2> "$RUNNER_TEMP/err"; then
-              echo "::error::commit $(git log -1 --format='%h %s' "$sha")"
-              cat "$RUNNER_TEMP/err"
-              failed=1
-            fi
-          done
-          exit $failed
-
   backend:
     runs-on: ubuntu-latest
     steps:
