@@ -13,6 +13,7 @@ import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import com.mecfin.transaction.infra.TransactionRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -33,18 +34,21 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final RecurringSeriesService recurringSeriesService;
     private final TagService tagService;
+    private final Clock clock;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             AccountService accountService,
             CategoryRepository categoryRepository,
             RecurringSeriesService recurringSeriesService,
-            TagService tagService) {
+            TagService tagService,
+            Clock clock) {
         this.transactionRepository = transactionRepository;
         this.accountService = accountService;
         this.categoryRepository = categoryRepository;
         this.recurringSeriesService = recurringSeriesService;
         this.tagService = tagService;
+        this.clock = clock;
     }
 
     // Sobrecarga sem data final nem tags - usada por quem não lida com isso (ex.: BillService).
@@ -278,15 +282,21 @@ public class TransactionService {
                 .orElse(false);
     }
 
-    // Efetiva um lançamento previsto (tipicamente uma ocorrência futura de um fixo).
+    // Efetiva um lançamento previsto (tipicamente uma ocorrência futura de um fixo). Sem data
+    // informada, um previsto que ainda não venceu é efetivado hoje: ninguém paga no futuro, e
+    // manter a data prevista deixaria o pagamento fora do saldo disponível até ela chegar.
+    // Um previsto já vencido mantém a data prevista (o mais provável é ter sido pago no dia).
     @Transactional
     public Transaction confirm(UUID id, BigDecimal actualAmount, LocalDate actualDate) {
         Transaction transaction = get(id);
-        transaction.confirm(actualAmount, actualDate);
+        LocalDate today = LocalDate.now(clock);
+        LocalDate date = actualDate != null ? actualDate
+                : transaction.getTransactionDate().isAfter(today) ? today : null;
+        transaction.confirm(actualAmount, date);
         if (transaction.getTransferPairId() != null) {
             transactionRepository.findByIdAndAccountIdIn(transaction.getTransferPairId(),
                             accountService.householdAccountIds())
-                    .ifPresent(pair -> pair.confirm(actualAmount, actualDate));
+                    .ifPresent(pair -> pair.confirm(actualAmount, date));
         }
         return transaction;
     }

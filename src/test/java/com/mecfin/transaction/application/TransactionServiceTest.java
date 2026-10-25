@@ -23,7 +23,9 @@ import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import com.mecfin.transaction.infra.TransactionRepository;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -73,9 +75,12 @@ class TransactionServiceTest {
         SecurityContextHolder.clearContext();
     }
 
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 25);
+    private static final UUID PENDING_ID = UUID.randomUUID();
+
     private TransactionService service() {
         return new TransactionService(transactionRepository, accountService, categoryRepository, recurringSeriesService,
-                tagService);
+                tagService, Clock.fixed(TODAY.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
     }
 
     private void stubAccountVisible(UUID id) {
@@ -303,5 +308,42 @@ class TransactionServiceTest {
 
         assertThatThrownBy(() -> service().confirm(transactionId, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void confirmWithoutDatePostsAFutureOccurrenceToday() {
+        Transaction pending = stubPending(TODAY.plusDays(7));
+
+        service().confirm(PENDING_ID, null, null);
+
+        assertThat(pending.getStatus()).isEqualTo(TransactionStatus.POSTED);
+        assertThat(pending.getTransactionDate()).isEqualTo(TODAY);
+    }
+
+    @Test
+    void confirmWithoutDateKeepsTheDueDateOfAnOverdueOccurrence() {
+        Transaction pending = stubPending(TODAY.minusDays(10));
+
+        service().confirm(PENDING_ID, null, null);
+
+        assertThat(pending.getTransactionDate()).isEqualTo(TODAY.minusDays(10));
+    }
+
+    @Test
+    void confirmUsesTheInformedDate() {
+        Transaction pending = stubPending(TODAY.plusDays(7));
+
+        service().confirm(PENDING_ID, null, TODAY.minusDays(1));
+
+        assertThat(pending.getTransactionDate()).isEqualTo(TODAY.minusDays(1));
+    }
+
+    private Transaction stubPending(LocalDate dueDate) {
+        Transaction pending = Transaction.of(accountId, null, TransactionType.EXPENSE, BigDecimal.TEN, "Spotify",
+                dueDate, YearMonth.from(dueDate), TransactionStatus.PENDING, null);
+        when(accountService.householdAccountIds()).thenReturn(List.of(accountId));
+        when(transactionRepository.findByIdAndAccountIdIn(PENDING_ID, List.of(accountId)))
+                .thenReturn(Optional.of(pending));
+        return pending;
     }
 }
