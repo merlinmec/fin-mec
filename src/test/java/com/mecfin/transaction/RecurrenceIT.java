@@ -159,7 +159,8 @@ class RecurrenceIT {
 
         assertThat(confirmed.status()).isEqualTo(TransactionStatus.POSTED);
         assertThat(confirmed.amount()).isEqualByComparingTo("1480.00");
-        assertThat(confirmed.transactionDate()).isEqualTo(pending.transactionDate());
+        // Previsto do mês que vem efetivado sem data: entra hoje, não na data prevista.
+        assertThat(confirmed.transactionDate()).isEqualTo(LocalDate.now());
 
         withBody(user, client.post().uri("/api/transactions/" + pending.id() + "/confirm"))
                 .body(new ConfirmTransactionRequest(null, null))
