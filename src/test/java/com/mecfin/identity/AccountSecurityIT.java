@@ -245,7 +245,7 @@ class AccountSecurityIT {
         post(session, "/api/accounts").body(new CreateAccountRequest("Conta", AccountType.CHECKING, BigDecimal.TEN))
                 .exchange().expectStatus().isCreated();
         post(session, "/api/tags").body(new TagRequest("Viagem", null)).exchange().expectStatus().isCreated();
-        post(session, "/api/goals").body(new GoalRequest("Meta", BigDecimal.TEN, null, null, null, false))
+        post(session, "/api/goals").body(new GoalRequest("Meta", BigDecimal.TEN, null, null, null, false, null))
                 .exchange().expectStatus().isCreated();
         UUID userId = jdbc.queryForObject("SELECT id FROM users WHERE email = ?", UUID.class, email);
         UUID householdId = jdbc.queryForObject(

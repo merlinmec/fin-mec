@@ -17,6 +17,8 @@ export interface Goal {
   targetDate: string | null;
   color: string | null;
   icon: string | null;
+  /** Conta onde o dinheiro da meta fica; null = cofrinho só virtual. */
+  accountId: string | null;
   archived: boolean;
   savedAmount: number;
   savedThisMonth: number;
@@ -33,6 +35,8 @@ export interface GoalContribution {
   amount: number;
   date: string;
   note: string | null;
+  /** O aporte/resgate moveu dinheiro entre contas (excluí-lo cancela a transferência). */
+  transfer: boolean;
   createdAt: string;
 }
 
@@ -43,6 +47,7 @@ export interface GoalPayload {
   targetDate?: string | null;
   color?: string | null;
   icon?: string | null;
+  accountId?: string | null;
   archived: boolean;
 }
 
@@ -66,17 +71,22 @@ export function listContributions(goalId: string): Promise<GoalContribution[]> {
   return api.get<GoalContribution[]>(`/goals/${goalId}/contributions`);
 }
 
-/** amount > 0 = aporte; < 0 = resgate. */
+/**
+ * amount > 0 = aporte; < 0 = resgate. Com accountId, a transferência entre essa conta e a
+ * conta da meta é criada junto (aporte sai dela, resgate volta para ela).
+ */
 export function contribute(
   goalId: string,
   amount: number,
   note?: string,
   date?: string,
+  accountId?: string,
 ): Promise<Goal> {
   return api.post<Goal>(`/goals/${goalId}/contributions`, {
     amount,
     note: note || undefined,
     date: date || undefined,
+    accountId: accountId || undefined,
   });
 }
 

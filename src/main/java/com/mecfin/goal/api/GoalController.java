@@ -35,7 +35,8 @@ public class GoalController {
     @ResponseStatus(HttpStatus.CREATED)
     public GoalResponse create(@Valid @RequestBody GoalRequest request) {
         return GoalResponse.from(goalService.create(
-                request.name(), request.targetAmount(), request.targetDate(), request.color(), request.icon()));
+                request.name(), request.targetAmount(), request.targetDate(), request.color(), request.icon(),
+                request.accountId()));
     }
 
     @GetMapping("/{id}")
@@ -46,7 +47,7 @@ public class GoalController {
     @PutMapping("/{id}")
     public GoalResponse update(@PathVariable UUID id, @Valid @RequestBody GoalRequest request) {
         return GoalResponse.from(goalService.update(id, request.name(), request.targetAmount(), request.targetDate(),
-                request.color(), request.icon(), request.archived()));
+                request.color(), request.icon(), request.archived(), request.accountId()));
     }
 
     @DeleteMapping("/{id}")
@@ -63,7 +64,8 @@ public class GoalController {
     @PostMapping("/{id}/contributions")
     @ResponseStatus(HttpStatus.CREATED)
     public GoalResponse contribute(@PathVariable UUID id, @Valid @RequestBody ContributionRequest request) {
-        return GoalResponse.from(goalService.contribute(id, request.amount(), request.date(), request.note()));
+        return GoalResponse.from(goalService.contribute(id, request.amount(), request.date(), request.note(),
+                request.accountId()));
     }
 
     @DeleteMapping("/{id}/contributions/{contributionId}")

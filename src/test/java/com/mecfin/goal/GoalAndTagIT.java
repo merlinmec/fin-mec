@@ -19,6 +19,7 @@ import com.mecfin.testsupport.AuthTestSupport.AuthenticatedTestUser;
 import com.mecfin.transaction.api.CreateTransactionRequest;
 import com.mecfin.transaction.api.TransactionResponse;
 import com.mecfin.transaction.api.UpdateTransactionRequest;
+import com.mecfin.transaction.domain.TransactionDirection;
 import com.mecfin.transaction.domain.TransactionStatus;
 import com.mecfin.transaction.domain.TransactionType;
 import java.math.BigDecimal;
@@ -64,8 +65,12 @@ class GoalAndTagIT {
     }
 
     private UUID createAccount(AuthenticatedTestUser user) {
+        return createAccount(user, "Conta");
+    }
+
+    private UUID createAccount(AuthenticatedTestUser user, String name) {
         return withBody(user, client.post().uri("/api/accounts"))
-                .body(new CreateAccountRequest("Conta", AccountType.CHECKING, BigDecimal.ZERO))
+                .body(new CreateAccountRequest(name, AccountType.CHECKING, BigDecimal.ZERO))
                 .exchange().expectStatus().isCreated()
                 .expectBody(AccountResponse.class).returnResult().getResponseBody().id();
     }
@@ -190,14 +195,14 @@ class GoalAndTagIT {
     private GoalResponse createGoal(AuthenticatedTestUser user, String target, LocalDate targetDate) {
         return withBody(user, client.post().uri("/api/goals"))
                 .body(new GoalRequest("Reserva de emergência", new BigDecimal(target), targetDate, "#16a34a",
-                        "shield", false))
+                        "shield", false, null))
                 .exchange().expectStatus().isCreated()
                 .expectBody(GoalResponse.class).returnResult().getResponseBody();
     }
 
     private GoalResponse contribute(AuthenticatedTestUser user, UUID goalId, String amount, int expectedStatus) {
         return withBody(user, client.post().uri("/api/goals/" + goalId + "/contributions"))
-                .body(new ContributionRequest(new BigDecimal(amount), null, "aporte"))
+                .body(new ContributionRequest(new BigDecimal(amount), null, "aporte", null))
                 .exchange().expectStatus().isEqualTo(expectedStatus)
                 .expectBody(GoalResponse.class).returnResult().getResponseBody();
     }
@@ -231,7 +236,7 @@ class GoalAndTagIT {
         contribute(user, goal.id(), "50.00", 201);
 
         withBody(user, client.post().uri("/api/goals/" + goal.id() + "/contributions"))
-                .body(new ContributionRequest(new BigDecimal("-50.01"), null, null))
+                .body(new ContributionRequest(new BigDecimal("-50.01"), null, null, null))
                 .exchange().expectStatus().isBadRequest();
     }
 
@@ -264,14 +269,14 @@ class GoalAndTagIT {
         GoalResponse goal = createGoal(user, "500.00", null);
 
         withBody(user, client.put().uri("/api/goals/" + goal.id()))
-                .body(new GoalRequest(goal.name(), goal.targetAmount(), null, null, null, true))
+                .body(new GoalRequest(goal.name(), goal.targetAmount(), null, null, null, true, null))
                 .exchange().expectStatus().isOk();
 
         assertThat(listGoals(user, "")).isEmpty();
         assertThat(listGoals(user, "?includeArchived=true")).singleElement()
                 .extracting(GoalResponse::status).isEqualTo(GoalStatus.ARCHIVED);
         withBody(user, client.post().uri("/api/goals/" + goal.id() + "/contributions"))
-                .body(new ContributionRequest(BigDecimal.TEN, null, null))
+                .body(new ContributionRequest(BigDecimal.TEN, null, null, null))
                 .exchange().expectStatus().isBadRequest();
     }
 
@@ -284,8 +289,107 @@ class GoalAndTagIT {
         assertThat(listGoals(intruder, "")).isEmpty();
         intruder.authenticate(client.get().uri("/api/goals/" + goal.id())).exchange().expectStatus().isNotFound();
         withBody(intruder, client.post().uri("/api/goals/" + goal.id() + "/contributions"))
-                .body(new ContributionRequest(BigDecimal.TEN, null, null))
+                .body(new ContributionRequest(BigDecimal.TEN, null, null, null))
                 .exchange().expectStatus().isNotFound();
+    }
+
+    // ---- meta ligada a conta ----
+
+    private GoalResponse createGoalIn(AuthenticatedTestUser user, UUID accountId) {
+        return withBody(user, client.post().uri("/api/goals"))
+                .body(new GoalRequest("Viagem", new BigDecimal("4000.00"), null, null, "plane", false, accountId))
+                .exchange().expectStatus().isCreated()
+                .expectBody(GoalResponse.class).returnResult().getResponseBody();
+    }
+
+    private RestTestClient.ResponseSpec move(AuthenticatedTestUser user, UUID goalId, String amount, UUID accountId) {
+        return withBody(user, client.post().uri("/api/goals/" + goalId + "/contributions"))
+                .body(new ContributionRequest(new BigDecimal(amount), null, null, accountId))
+                .exchange();
+    }
+
+    private List<GoalContributionResponse> history(AuthenticatedTestUser user, UUID goalId) {
+        return user.authenticate(client.get().uri("/api/goals/" + goalId + "/contributions"))
+                .exchange().expectStatus().isOk()
+                .expectBody(new ParameterizedTypeReference<List<GoalContributionResponse>>() {
+                })
+                .returnResult().getResponseBody();
+    }
+
+    @Test
+    void depositFromAnAccountTransfersTheMoneyToTheGoalAccount() {
+        AuthenticatedTestUser user = registerUser();
+        UUID checking = createAccount(user, "Nubank");
+        UUID savings = createAccount(user, "Inter");
+        GoalResponse goal = createGoalIn(user, savings);
+        assertThat(goal.accountId()).isEqualTo(savings);
+
+        move(user, goal.id(), "300.00", checking).expectStatus().isCreated();
+
+        TransactionResponse out = list(user, "?accountId=" + checking).content().getFirst();
+        TransactionResponse in = list(user, "?accountId=" + savings).content().getFirst();
+        assertThat(out.transferDirection()).isEqualTo(TransactionDirection.OUT);
+        assertThat(in.transferDirection()).isEqualTo(TransactionDirection.IN);
+        assertThat(out.amount()).isEqualByComparingTo("300.00");
+        assertThat(out.status()).isEqualTo(TransactionStatus.POSTED);
+        assertThat(history(user, goal.id())).singleElement()
+                .satisfies(c -> assertThat(c.transfer()).isTrue());
+    }
+
+    @Test
+    void withdrawalToAnAccountTransfersBackAndWithoutAccountOnlyTheGoalChanges() {
+        AuthenticatedTestUser user = registerUser();
+        UUID checking = createAccount(user, "Nubank");
+        UUID savings = createAccount(user, "Inter");
+        GoalResponse goal = createGoalIn(user, savings);
+        move(user, goal.id(), "500.00", null).expectStatus().isCreated();
+
+        move(user, goal.id(), "-200.00", checking).expectStatus().isCreated();
+        move(user, goal.id(), "-100.00", null).expectStatus().isCreated();
+
+        assertThat(list(user, "?accountId=" + savings).content()).singleElement()
+                .satisfies(t -> assertThat(t.transferDirection()).isEqualTo(TransactionDirection.OUT));
+        assertThat(list(user, "?accountId=" + checking).content()).singleElement()
+                .satisfies(t -> assertThat(t.transferDirection()).isEqualTo(TransactionDirection.IN));
+    }
+
+    @Test
+    void deletingATransferContributionCancelsBothLegs() {
+        AuthenticatedTestUser user = registerUser();
+        UUID checking = createAccount(user, "Nubank");
+        UUID savings = createAccount(user, "Inter");
+        GoalResponse goal = createGoalIn(user, savings);
+        move(user, goal.id(), "300.00", checking).expectStatus().isCreated();
+        UUID contributionId = history(user, goal.id()).getFirst().id();
+
+        user.authenticate(client.delete().uri("/api/goals/" + goal.id() + "/contributions/" + contributionId))
+                .exchange().expectStatus().isOk();
+
+        assertThat(list(user, "?status=CANCELED").content()).hasSize(2);
+        assertThat(list(user, "?status=POSTED").content()).isEmpty();
+    }
+
+    @Test
+    void movingMoneyRequiresTheGoalToHaveAnAccountDifferentFromTheSource() {
+        AuthenticatedTestUser user = registerUser();
+        UUID checking = createAccount(user, "Nubank");
+        GoalResponse virtualGoal = createGoalIn(user, null);
+        GoalResponse sameAccount = createGoalIn(user, checking);
+
+        move(user, virtualGoal.id(), "100.00", checking).expectStatus().isBadRequest();
+        move(user, sameAccount.id(), "100.00", checking).expectStatus().isBadRequest();
+        assertThat(history(user, virtualGoal.id())).isEmpty();
+        assertThat(history(user, sameAccount.id())).isEmpty();
+    }
+
+    @Test
+    void goalAccountMustBelongToTheHousehold() {
+        AuthenticatedTestUser owner = registerUser();
+        UUID foreignAccount = createAccount(registerUser());
+
+        withBody(owner, client.post().uri("/api/goals"))
+                .body(new GoalRequest("Viagem", new BigDecimal("4000.00"), null, null, null, false, foreignAccount))
+                .exchange().expectStatus().isBadRequest();
     }
 
     private List<GoalResponse> listGoals(AuthenticatedTestUser user, String query) {

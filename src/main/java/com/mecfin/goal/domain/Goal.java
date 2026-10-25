@@ -42,6 +42,10 @@ public class Goal {
     @Column(name = "icon", length = 50)
     private String icon;
 
+    // Onde o dinheiro da meta fica guardado; null = cofrinho só virtual.
+    @Column(name = "account_id")
+    private UUID accountId;
+
     @Column(name = "archived_at")
     private Instant archivedAt;
 
@@ -81,6 +85,11 @@ public class Goal {
         this.updatedAt = Instant.now();
     }
 
+    public void linkAccount(UUID accountId) {
+        this.accountId = accountId;
+        this.updatedAt = Instant.now();
+    }
+
     public boolean isArchived() {
         return archivedAt != null;
     }
@@ -111,6 +120,10 @@ public class Goal {
 
     public String getIcon() {
         return icon;
+    }
+
+    public UUID getAccountId() {
+        return accountId;
     }
 
     public Instant getArchivedAt() {

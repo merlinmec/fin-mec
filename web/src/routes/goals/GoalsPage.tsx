@@ -12,6 +12,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import type { Account } from "@/api/accounts";
 import type { Goal, GoalPayload } from "@/api/goals";
 import { GOAL_STATUS_LABELS } from "@/api/goals";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { PageHeader } from "@/components/ui/panel";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +40,7 @@ import {
   useRemoveContribution,
   useSaveGoal,
 } from "@/hooks/useFeatureData";
+import { useAccounts } from "@/hooks/useAccounts";
 import { CATEGORY_COLORS } from "@/lib/category-icons";
 import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
@@ -64,6 +67,12 @@ const STATUS_STYLE: Record<Goal["status"], string> = {
   OVERDUE: "bg-warning/15 text-warning",
   ARCHIVED: "bg-muted text-muted-foreground",
 };
+
+// Contas que podem receber/mandar dinheiro de meta (arquivada não movimenta).
+function useActiveAccounts(): Account[] {
+  const { data } = useAccounts();
+  return (data ?? []).filter((a) => !a.archived);
+}
 
 function monthYear(iso: string): string {
   const [y, m] = iso.split("-").map(Number);
@@ -169,6 +178,7 @@ function GoalCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const color = goal.color ?? "var(--color-primary)";
+  const accountName = useActiveAccounts().find((a) => a.id === goal.accountId)?.name;
 
   function toggleArchive() {
     setMenuOpen(false);
@@ -180,6 +190,7 @@ function GoalCard({
         targetDate: goal.targetDate,
         color: goal.color,
         icon: goal.icon,
+        accountId: goal.accountId,
         archived: !goal.archived,
       },
     });
@@ -200,14 +211,19 @@ function GoalCard({
         />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-semibold">{goal.name}</h2>
-          <span
-            className={cn(
-              "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              STATUS_STYLE[goal.status],
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span
+              className={cn(
+                "inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                STATUS_STYLE[goal.status],
+              )}
+            >
+              {GOAL_STATUS_LABELS[goal.status]}
+            </span>
+            {accountName && (
+              <span className="truncate text-xs text-muted-foreground">no {accountName}</span>
             )}
-          >
-            {GOAL_STATUS_LABELS[goal.status]}
-          </span>
+          </div>
         </div>
         <Popover open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverTrigger asChild>
@@ -335,8 +351,8 @@ function GoalCard({
           <DialogHeader>
             <DialogTitle>Excluir “{goal.name}”?</DialogTitle>
             <DialogDescription>
-              A meta e todo o histórico de aportes serão apagados. Nenhum lançamento ou saldo de
-              conta é afetado — a meta é só um cofrinho virtual. Se quiser guardar o histórico,
+              A meta e todo o histórico de aportes serão apagados. Os lançamentos e transferências
+              já feitos continuam nas contas, e nenhum saldo muda. Se quiser guardar o histórico,
               arquive em vez de excluir.
             </DialogDescription>
           </DialogHeader>
@@ -413,6 +429,8 @@ function GoalForm({ goal, onDone }: { goal?: Goal; onDone: () => void }) {
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? "");
   const [color, setColor] = useState<string>(goal?.color ?? CATEGORY_COLORS[4]);
   const [icon, setIcon] = useState<string>(goal?.icon ?? "piggy-bank");
+  const [accountId, setAccountId] = useState(goal?.accountId ?? "");
+  const accounts = useActiveAccounts();
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
@@ -427,6 +445,7 @@ function GoalForm({ goal, onDone }: { goal?: Goal; onDone: () => void }) {
       targetDate: targetDate || null,
       color,
       icon,
+      accountId: accountId || null,
       archived: goal?.archived ?? false,
     };
     await saveGoal.mutateAsync({ id: goal?.id, payload }).then(onDone, () => undefined);
@@ -475,6 +494,25 @@ function GoalForm({ goal, onDone }: { goal?: Goal; onDone: () => void }) {
           </div>
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="goal-account">Onde o dinheiro fica</Label>
+          <NativeSelect
+            id="goal-account"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            aria-describedby="goal-account-hint"
+          >
+            <option value="">Nenhuma conta (só acompanhar)</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </NativeSelect>
+          <p id="goal-account-hint" className="text-xs text-muted-foreground">
+            Com uma conta, guardar na meta já transfere o dinheiro para ela.
+          </p>
+        </div>
+        <div className="space-y-1.5">
           <Label>Cor</Label>
           <ColorSwatchPicker value={color} onChange={setColor} />
         </div>
@@ -507,77 +545,142 @@ function MoveDialog({
   state: { goal: Goal; direction: 1 | -1 } | null;
   onClose: () => void;
 }) {
+  return (
+    <Dialog open={state !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        {state && (
+          <MoveForm
+            key={`${state.goal.id}:${state.direction}`}
+            goal={state.goal}
+            direction={state.direction}
+            onDone={onClose}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Aporte sai, por padrão, da conta corrente (onde o salário cai); resgate, por padrão, foi
+// gasto direto da conta da meta - os dois casos mais comuns já vêm marcados.
+function defaultCounterpart(goal: Goal, direction: 1 | -1, accounts: Account[]): string {
+  if (!goal.accountId || direction === -1) return "";
+  const others = accounts.filter((a) => a.id !== goal.accountId);
+  return (others.find((a) => a.type === "CHECKING") ?? others[0])?.id ?? "";
+}
+
+function MoveForm({
+  goal,
+  direction,
+  onDone,
+}: {
+  goal: Goal;
+  direction: 1 | -1;
+  onDone: () => void;
+}) {
   const contribute = useContribute();
+  const accounts = useActiveAccounts();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const deposit = state?.direction === 1;
-
-  function close() {
-    setAmount("");
-    setNote("");
-    onClose();
-  }
+  const [counterpart, setCounterpart] = useState(() =>
+    defaultCounterpart(goal, direction, accounts),
+  );
+  const deposit = direction === 1;
+  const goalAccount = accounts.find((a) => a.id === goal.accountId);
+  const others = accounts.filter((a) => a.id !== goal.accountId);
+  const counterpartName = others.find((a) => a.id === counterpart)?.name;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const value = Number(amount);
-    if (!state || !(value > 0)) return;
+    if (!(value > 0)) return;
     contribute.mutate(
-      { goalId: state.goal.id, amount: value * state.direction, note },
-      { onSuccess: close },
+      {
+        goalId: goal.id,
+        amount: value * direction,
+        note,
+        accountId: counterpart || undefined,
+      },
+      { onSuccess: onDone },
     );
   }
 
   return (
-    <Dialog open={state !== null} onOpenChange={(o) => !o && close()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{deposit ? "Guardar na meta" : "Resgatar da meta"}</DialogTitle>
-          <DialogDescription>
-            {state &&
-              (deposit
-                ? `Quanto você separou para “${state.goal.name}”?`
-                : `Guardado hoje: ${formatMoney(state.goal.savedAmount)}.`)}
-          </DialogDescription>
-        </DialogHeader>
-        <form className="space-y-4" onSubmit={submit}>
+    <>
+      <DialogHeader>
+        <DialogTitle>{deposit ? "Guardar na meta" : "Resgatar da meta"}</DialogTitle>
+        <DialogDescription>
+          {deposit
+            ? `Quanto você vai separar para “${goal.name}”?`
+            : `Guardado hoje: ${formatMoney(goal.savedAmount)}.`}
+        </DialogDescription>
+      </DialogHeader>
+      <form className="space-y-4" onSubmit={submit}>
+        <div className="space-y-1.5">
+          <Label htmlFor="move-amount">Valor</Label>
+          <Input
+            id="move-amount"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="num h-11 text-lg font-semibold"
+            autoFocus
+            placeholder="R$ 0,00"
+          />
+        </div>
+        {goalAccount && others.length > 0 && (
           <div className="space-y-1.5">
-            <Label htmlFor="move-amount">Valor</Label>
-            <Input
-              id="move-amount"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="num h-11 text-lg font-semibold"
-              autoFocus
-              placeholder="R$ 0,00"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="move-note">Observação (opcional)</Label>
-            <Input
-              id="move-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              maxLength={255}
-              placeholder={deposit ? "Ex.: sobra do salário" : "Ex.: conserto do carro"}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              variant={deposit ? "default" : "destructive"}
-              disabled={contribute.isPending || !(Number(amount) > 0)}
+            <Label htmlFor="move-account">{deposit ? "Sai de" : "Para onde vai"}</Label>
+            <NativeSelect
+              id="move-account"
+              value={counterpart}
+              onChange={(e) => setCounterpart(e.target.value)}
+              aria-describedby="move-account-hint"
             >
-              {deposit ? "Guardar" : "Resgatar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              {others.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {deposit ? a.name : `Volta para ${a.name}`}
+                </option>
+              ))}
+              <option value="">
+                {deposit
+                  ? `Já está no ${goalAccount.name} (só registrar)`
+                  : `Gastei direto do ${goalAccount.name}`}
+              </option>
+            </NativeSelect>
+            <p id="move-account-hint" className="text-xs text-muted-foreground">
+              {counterpartName
+                ? deposit
+                  ? `Cria a transferência ${counterpartName} → ${goalAccount.name}.`
+                  : `Cria a transferência ${goalAccount.name} → ${counterpartName}.`
+                : "Nenhuma conta é movimentada, só a meta."}
+            </p>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <Label htmlFor="move-note">Observação (opcional)</Label>
+          <Input
+            id="move-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={255}
+            placeholder={deposit ? "Ex.: sobra do salário" : "Ex.: conserto do carro"}
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            type="submit"
+            variant={deposit ? "default" : "destructive"}
+            disabled={contribute.isPending || !(Number(amount) > 0)}
+          >
+            {deposit ? "Guardar" : "Resgatar"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
   );
 }
 
@@ -606,6 +709,7 @@ function HistoryDialog({ goal, onClose }: { goal: Goal | null; onClose: () => vo
                   <div className="text-sm font-medium">{c.amount > 0 ? "Aporte" : "Resgate"}</div>
                   <div className="truncate text-xs text-muted-foreground">
                     {formatDate(c.date)}
+                    {c.transfer ? " · com transferência" : ""}
                     {c.note ? ` · ${c.note}` : ""}
                   </div>
                 </div>
@@ -622,7 +726,11 @@ function HistoryDialog({ goal, onClose }: { goal: Goal | null; onClose: () => vo
                   variant="ghost"
                   size="icon"
                   className="size-8 text-muted-foreground hover:text-destructive"
-                  aria-label="Remover movimentação"
+                  aria-label={
+                    c.transfer
+                      ? "Remover movimentação e cancelar a transferência"
+                      : "Remover movimentação"
+                  }
                   disabled={remove.isPending}
                   onClick={() => goal && remove.mutate({ goalId: goal.id, contributionId: c.id })}
                 >

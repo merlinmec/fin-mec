@@ -144,13 +144,13 @@ public class DemoDataSeeder {
                 today, null);
 
         GoalView reserve = goals.create("Reserva de emergência", money(24000), today.plusMonths(8), "#10B981",
-                "piggy-bank");
-        goals.contribute(reserve.goal().getId(), money(1500), today.minusDays(120), null);
-        goals.contribute(reserve.goal().getId(), money(1800), today.minusDays(60), null);
-        goals.contribute(reserve.goal().getId(), money(1200), today.minusDays(2), null);
-        GoalView trip = goals.create("Viagem para o Chile", money(9000), today.plusMonths(5), "#3B82F6", "plane");
-        goals.contribute(trip.goal().getId(), money(900), today.minusDays(90), null);
-        goals.contribute(trip.goal().getId(), money(1100), today.minusDays(25), null);
+                "piggy-bank", null);
+        goals.contribute(reserve.goal().getId(), money(1500), today.minusDays(120), null, null);
+        goals.contribute(reserve.goal().getId(), money(1800), today.minusDays(60), null, null);
+        goals.contribute(reserve.goal().getId(), money(1200), today.minusDays(2), null, null);
+        GoalView trip = goals.create("Viagem para o Chile", money(9000), today.plusMonths(5), "#3B82F6", "plane", null);
+        goals.contribute(trip.goal().getId(), money(900), today.minusDays(90), null, null);
+        goals.contribute(trip.goal().getId(), money(1100), today.minusDays(25), null, null);
     }
 
     /** Um mês do histórico: o que cai depois de hoje entra como previsto. */
