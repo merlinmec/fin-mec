@@ -33,6 +33,10 @@ public class GoalContribution {
     @Column(name = "note", length = 255, updatable = false)
     private String note;
 
+    // Perna da transferência entre contas feita junto com o aporte/resgate; null = só a meta mudou.
+    @Column(name = "transfer_transaction_id", updatable = false)
+    private UUID transferTransactionId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -40,6 +44,11 @@ public class GoalContribution {
     }
 
     public GoalContribution(UUID goalId, BigDecimal amount, LocalDate contributionDate, String note) {
+        this(goalId, amount, contributionDate, note, null);
+    }
+
+    public GoalContribution(UUID goalId, BigDecimal amount, LocalDate contributionDate, String note,
+            UUID transferTransactionId) {
         if (amount.signum() == 0) {
             throw new IllegalArgumentException("Valor do aporte não pode ser zero");
         }
@@ -47,6 +56,7 @@ public class GoalContribution {
         this.amount = amount;
         this.contributionDate = contributionDate;
         this.note = note;
+        this.transferTransactionId = transferTransactionId;
         this.createdAt = Instant.now();
     }
 
@@ -68,6 +78,10 @@ public class GoalContribution {
 
     public String getNote() {
         return note;
+    }
+
+    public UUID getTransferTransactionId() {
+        return transferTransactionId;
     }
 
     public Instant getCreatedAt() {

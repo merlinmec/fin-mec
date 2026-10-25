@@ -6,10 +6,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record GoalContributionResponse(UUID id, BigDecimal amount, LocalDate date, String note, Instant createdAt) {
+// transfer = o aporte/resgate moveu dinheiro entre contas (excluí-lo cancela a transferência).
+public record GoalContributionResponse(
+        UUID id, BigDecimal amount, LocalDate date, String note, boolean transfer, Instant createdAt) {
 
     public static GoalContributionResponse from(GoalContribution contribution) {
         return new GoalContributionResponse(contribution.getId(), contribution.getAmount(),
-                contribution.getContributionDate(), contribution.getNote(), contribution.getCreatedAt());
+                contribution.getContributionDate(), contribution.getNote(),
+                contribution.getTransferTransactionId() != null, contribution.getCreatedAt());
     }
 }

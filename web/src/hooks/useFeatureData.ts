@@ -82,6 +82,8 @@ function useGoalMutation<TArgs>(
     mutationFn: fn,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["goals"] });
+      // Aporte/resgate com conta cria (ou cancela) uma transferência de verdade.
+      invalidateFinancialViews(queryClient);
       toast.success(success);
     },
     onError: (err) => toast.error(getErrorMessage(err, failure)),
@@ -107,8 +109,17 @@ export function useDeleteGoal() {
 
 export function useContribute() {
   return useGoalMutation(
-    ({ goalId, amount, note }: { goalId: string; amount: number; note?: string }) =>
-      contribute(goalId, amount, note),
+    ({
+      goalId,
+      amount,
+      note,
+      accountId,
+    }: {
+      goalId: string;
+      amount: number;
+      note?: string;
+      accountId?: string;
+    }) => contribute(goalId, amount, note, undefined, accountId),
     "Movimentação registrada na meta.",
     "Não foi possível registrar a movimentação.",
   );

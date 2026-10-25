@@ -1,14 +1,20 @@
 package com.mecfin.goal.application;
 
+import com.mecfin.account.application.AccountNotFoundException;
+import com.mecfin.account.application.AccountService;
 import com.mecfin.goal.domain.Goal;
 import com.mecfin.goal.domain.GoalContribution;
 import com.mecfin.goal.infra.GoalAmountProjection;
 import com.mecfin.goal.infra.GoalContributionRepository;
 import com.mecfin.goal.infra.GoalRepository;
 import com.mecfin.shared.security.CurrentUser;
+import com.mecfin.transaction.application.EditScope;
+import com.mecfin.transaction.application.TransactionService;
+import com.mecfin.transaction.domain.TransactionStatus;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,17 +27,25 @@ public class GoalService {
 
     private final GoalRepository goalRepository;
     private final GoalContributionRepository contributionRepository;
+    private final AccountService accountService;
+    private final TransactionService transactionService;
     private final Clock clock;
 
-    public GoalService(GoalRepository goalRepository, GoalContributionRepository contributionRepository, Clock clock) {
+    public GoalService(GoalRepository goalRepository, GoalContributionRepository contributionRepository,
+            AccountService accountService, TransactionService transactionService, Clock clock) {
         this.goalRepository = goalRepository;
         this.contributionRepository = contributionRepository;
+        this.accountService = accountService;
+        this.transactionService = transactionService;
         this.clock = clock;
     }
 
     @Transactional
-    public GoalView create(String name, BigDecimal targetAmount, LocalDate targetDate, String color, String icon) {
-        Goal goal = goalRepository.save(new Goal(CurrentUser.householdId(), name, targetAmount, targetDate, color, icon));
+    public GoalView create(String name, BigDecimal targetAmount, LocalDate targetDate, String color, String icon,
+            UUID accountId) {
+        Goal goal = new Goal(CurrentUser.householdId(), name, targetAmount, targetDate, color, icon);
+        goal.linkAccount(validateAccount(accountId));
+        goal = goalRepository.save(goal);
         return GoalView.of(goal, BigDecimal.ZERO, BigDecimal.ZERO, today());
     }
 
@@ -64,9 +78,10 @@ public class GoalService {
 
     @Transactional
     public GoalView update(UUID id, String name, BigDecimal targetAmount, LocalDate targetDate, String color,
-            String icon, boolean archived) {
+            String icon, boolean archived, UUID accountId) {
         Goal goal = getOwnedOrThrow(id);
         goal.update(name, targetAmount, targetDate, color, icon, archived);
+        goal.linkAccount(validateAccount(accountId));
         return view(goal);
     }
 
@@ -77,9 +92,16 @@ public class GoalService {
         goalRepository.delete(getOwnedOrThrow(id));
     }
 
-    /** Aporte (amount > 0) ou resgate (amount < 0). O guardado nunca pode ficar negativo. */
+    /**
+     * Aporte (amount > 0) ou resgate (amount < 0). O guardado nunca pode ficar negativo.
+     *
+     * <p>Com {@code accountId}, o dinheiro também se move de verdade: o aporte vira uma
+     * transferência dessa conta para a conta da meta, e o resgate, da conta da meta para ela -
+     * numa ação só, em vez de guardar na meta e depois lançar a transferência à parte. Sem
+     * {@code accountId}, só a meta muda (ex.: resgate gasto direto da conta da meta).
+     */
     @Transactional
-    public GoalView contribute(UUID goalId, BigDecimal amount, LocalDate date, String note) {
+    public GoalView contribute(UUID goalId, BigDecimal amount, LocalDate date, String note, UUID accountId) {
         Goal goal = getOwnedOrThrow(goalId);
         if (goal.isArchived()) {
             throw new IllegalArgumentException("Meta arquivada não recebe aportes - desarquive primeiro");
@@ -88,8 +110,10 @@ public class GoalService {
         if (saved.add(amount).signum() < 0) {
             throw new IllegalArgumentException("Resgate maior que o valor guardado na meta (" + saved.toPlainString() + ")");
         }
-        contributionRepository.save(new GoalContribution(goal.getId(), amount, date != null ? date : today(),
-                note == null || note.isBlank() ? null : note.strip()));
+        LocalDate day = date != null ? date : today();
+        UUID transferId = accountId != null ? transfer(goal, amount, day, accountId) : null;
+        contributionRepository.save(new GoalContribution(goal.getId(), amount, day,
+                note == null || note.isBlank() ? null : note.strip(), transferId));
         return view(goal);
     }
 
@@ -104,7 +128,35 @@ public class GoalService {
                     "Excluir este aporte deixaria a meta com saldo negativo - exclua antes o resgate correspondente");
         }
         contributionRepository.delete(contribution);
+        if (contribution.getTransferTransactionId() != null) {
+            transactionService.cancel(contribution.getTransferTransactionId(), EditScope.THIS);
+        }
         return view(goal);
+    }
+
+    private UUID transfer(Goal goal, BigDecimal amount, LocalDate day, UUID accountId) {
+        if (goal.getAccountId() == null) {
+            throw new IllegalArgumentException("Escolha em que conta o dinheiro da meta fica para movimentar entre contas");
+        }
+        boolean deposit = amount.signum() > 0;
+        UUID source = deposit ? accountId : goal.getAccountId();
+        UUID destination = deposit ? goal.getAccountId() : accountId;
+        String description = (deposit ? "Guardado na meta " : "Resgatado da meta ") + goal.getName();
+        return transactionService.createTransfer(source, destination, amount.abs(), description, day,
+                YearMonth.from(day), TransactionStatus.POSTED).getFirst().getId();
+    }
+
+    // Mesmo padrão de TransactionService.validateAccount: conta é campo do payload, então
+    // inválida/não visível vira 400, não 404.
+    private UUID validateAccount(UUID accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        try {
+            return accountService.get(accountId).getId();
+        } catch (AccountNotFoundException e) {
+            throw new IllegalArgumentException("accountId inválido ou não visível: " + accountId);
+        }
     }
 
     private GoalView view(Goal goal) {
